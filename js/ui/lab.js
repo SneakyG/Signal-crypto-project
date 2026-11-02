@@ -4,14 +4,20 @@ const Lab={
   init(){
     $('lrun').onclick=()=>this.run();$('lstop').onclick=()=>Learn.stop();
     $('alon').checked=AutoLab.on;
+    $('alreset').onclick=()=>{const vs=Strat.list.filter(v=>(v.track||[]).length);if(!vs.length){toast('Chưa có bộ đếm nào để đặt lại.');return}
+      if(confirm(`Đặt lại bộ đếm thắng/thua của tất cả ${vs.length} phiên bản? Sổ lệnh không bị ảnh hưởng.`)){this.reset(vs);toast('Đã đặt lại bộ đếm của tất cả phiên bản.','up')}};
     $('alon').addEventListener('change',()=>{AutoLab.on=$('alon').checked;Store.set('autolab',AutoLab.on);AutoLab.say(AutoLab.on?'Đã bật tự học tự động.':'Đã tắt tự học tự động.');this.render()});
     $('p-lab').addEventListener('click',e=>{
       const u=e.target.closest&&e.target.closest('[data-use]');
       if(u){Strat.active=u.dataset.use;Strat.save();UI.fillStrat();Ana.fillStrats();this.render();toast(`Đang dùng <b>${esc(Strat.label(Strat.cur()))}</b> ở Bảng tín hiệu.`,'up');Sig.reload();return}
+      const rs=e.target.closest&&e.target.closest('[data-reset]');
+      if(rs){const v=Strat.byId(rs.dataset.reset);if(v&&confirm(`Đặt lại bộ đếm thắng/thua của ${Strat.label(v)}? Các lệnh đã ghi sẽ bị xóa khỏi tiến trình (Sổ lệnh không bị ảnh hưởng).`)){this.reset([v]);toast(`Đã đặt lại bộ đếm của <b>${esc(Strat.label(v))}</b>.`,'up')}return}
       const l=e.target.closest&&e.target.closest('[data-learn]');if(l){AutoLab.say(`Bạn yêu cầu học ngay ${Strat.label(Strat.byId(l.dataset.learn))}.`);AutoLab.enqueue(l.dataset.learn);return}
       const d=e.target.closest&&e.target.closest('[data-del]');
       if(d&&confirm('Xóa phiên bản này?')){Strat.list=Strat.list.filter(v=>v.id!==d.dataset.del);if(!Strat.isAuto()&&!Strat.byId(Strat.active))Strat.active='auto';
         Strat.save();UI.fillStrat();Ana.fillStrats();this.render()}})},
+  // Xóa kết quả đã ghi của phiên bản: tiến trình quay về 0/10, tự học đếm lại từ đầu
+  reset(vs){for(const v of vs){v.track=[];v.mark=0;AutoLab.queue=AutoLab.queue.filter(id=>id!==v.id);AutoLab.say(`Đặt lại bộ đếm thắng/thua của ${Strat.label(v)}: bắt đầu đếm lại từ 0/10.`)}Strat.save();this.render()},
   renderLog(){put($('llog'),AutoLab.lines.length?AutoLab.lines.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.m)}</p>`).join(''):'<p class="mut">Chưa có hoạt động. Bảng sẽ ghi lại mỗi lần đánh giá 10 lệnh và mỗi lần tự học.</p>')},
   card(base){
     const im=Strat.impl[base],vs=Strat.list.filter(v=>v.base===base).sort((a,b)=>a.ver-b.ver),used=v=>Strat.active===v.id||(Strat.isAuto()&&Object.values(Scan.best).includes(v.id));
@@ -20,9 +26,10 @@ const Lab={
       return`<div class="vn ${st[v.status][1]}${used(v)?' use':''}">
         <div class="vh"><b>v${v.ver}</b><span class="st ${st[v.status][1]}">${st[v.status][0]}</span>${used(v)?'<span class="tag up">đang dùng</span>':''}</div>
         <div class="vbar"><i style="width:${Math.min(100,s.fresh*10)}%"></i></div>
+        <small class="tot">${s.total?`Đã ghi ${s.total} lệnh · thắng ${s.all}/${s.total} (${(s.all/s.total*100).toFixed(0)}%)`:'Chưa ghi lệnh nào'}</small>
         <small>${v.status==='learning'?esc(v.stats?`Kiểm chứng: 10 lệnh cuối thắng ${v.stats.last10}/${v.stats.n10}, tỉ lệ thắng ${v.stats.va.win.toFixed(0)}%`:'Đang được bộ học tinh chỉnh'):`${s.fresh}/10 lệnh mới · 10 lệnh gần nhất thắng <b class="${pct>=70?'up':s.last?'dn':''}">${s.w}/${s.last}</b>`}</small>
         ${busy?'<small class="warn">⏳ Đang tự học…</small>':q?'<small class="warn">Trong hàng chờ tự học</small>':''}
-        <div class="vact">${v.status!=='learning'&&Strat.active!==v.id?`<button class="bx" data-use="${v.id}">Dùng</button>`:''}<button class="bx ghost" data-learn="${v.id}">Học ngay</button>${v.status!=='base'?`<button class="bx ghost dn" data-del="${v.id}">Xóa</button>`:''}</div></div>`};
+        <div class="vact">${v.status!=='learning'&&Strat.active!==v.id?`<button class="bx" data-use="${v.id}">Dùng</button>`:''}<button class="bx ghost" data-learn="${v.id}">Học ngay</button>${s.total?`<button class="bx ghost" data-reset="${v.id}" title="Xóa các kết quả đã ghi, đếm lại từ 0/10">Đặt lại đếm</button>`:''}${v.status!=='base'?`<button class="bx ghost dn" data-del="${v.id}">Xóa</button>`:''}</div></div>`};
     return`<div class="lcard"><div class="lch"><h2>${esc(im.name)}</h2><span class="mut">${im.tf?'Khung '+im.tf:''}${im.only?' · chỉ '+im.only.map(Fmt.coin).join(', '):''}</span></div>
       <p class="note">${esc(im.desc)}</p><div class="vline">${vs.map(ver).join('<span class="arr">→</span>')}</div></div>`},
   render(){
