@@ -1,4 +1,4 @@
-/* Sổ lệnh: lưu lệnh đã đặt, theo dõi vòng đời tới khi đóng, lãi/lỗ realtime, hủy lệnh chờ, tự reset khi qua ngày. */
+/* Sổ lệnh: lưu lệnh đã đặt, theo dõi vòng đời tới khi đóng, lãi/lỗ realtime, hủy lệnh chờ. */
 const ST={P:'Chờ khớp',F:'Đã khớp',H:'Đã chốt 50% ở TP1 · SL = Entry',C:'Bỏ lệnh (mất tín hiệu)',X:'Hết hạn',U:'Bạn đã hủy',S:'Cắt lỗ',B:'TP1 rồi về hòa vốn',T:'Chốt TP2',E:'Cắt sớm'};
 const Book={
   data:{day:Fmt.day(),orders:[],log:[]},prev:null,
@@ -13,11 +13,6 @@ const Book={
   byId(id){return this.data.orders.find(o=>o.id===id)},
   openFor(s){return this.data.orders.find(o=>o.s===s&&Book.isOpen(o))},
   log(kind,text){this.data.log.unshift({t:Date.now(),kind,text});if(this.data.log.length>80)this.data.log.length=80},
-  // Qua ngày: xoá lịch sử và thống kê (lưu bản hôm qua để tải Excel); lệnh đang mở vẫn được theo dõi
-  roll(){
-    if(this.data.day===Fmt.day())return;
-    const done=this.data.orders.filter(o=>!Book.isOpen(o));if(done.length)this.prev={day:this.data.day,orders:done};
-    this.data={day:Fmt.day(),orders:this.data.orders.filter(Book.isOpen),log:[]};this.save()},
   add(o){this.data.orders.push(o);this.log('place',`Đặt lệnh ${o.side} ${Fmt.coin(o.s)}: ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} = vị thế $${(o.notional||o.amt).toFixed(0)}`);this.save()},
   cancel(id){
     const o=this.byId(id);if(!o||o.st!=='P')return false;
@@ -42,7 +37,6 @@ const Book={
       net:cl.reduce((a,z)=>a+(z.pnl||0),0),rate:cl.length?w/cl.length*100:0}},
   // Cập nhật mọi lệnh đang mở theo dữ liệu nến mới nhất. cur: {"COIN|khung": bộ nến} đã tải sẵn trong lượt làm mới.
   async sync(cur){
-    this.roll();
     for(const o of this.data.orders.filter(Book.isOpen)){
       const key=o.s+'|'+o.tf;let D=cur[key];
       if(!D){try{D=cur[key]=await Sig.series(o.s,o.tf)}catch(e){continue}}
