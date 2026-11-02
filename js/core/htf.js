@@ -8,13 +8,13 @@ const HTF={
   attach(D,D4,D1,tf){
     const key=D.t.length+':'+D.t[D.t.length-1]+':'+D4.t.length+':'+D4.t[D4.t.length-1]+':'+D1.t.length+':'+D1.t[D1.t.length-1];
     if(D.biasKey===key)return D;
-    const b4=HTF.trend(D4),b1=HTF.trend(D1),n=D.c.length,ms=Data.MS[tf],bias=new Int8Array(n),x4=new Int8Array(n),x1=new Int8Array(n);
+    const b4=HTF.trend(D4),b1=HTF.trend(D1),n=D.c.length,ms=Data.MS[tf],bias=new Int8Array(n),x4=new Int8Array(n),x1=new Int8Array(n),i4=new Int32Array(n),i1=new Int32Array(n);
     let j4=-1,j1=-1;
     for(let i=0;i<n;i++){
       const close=D.t[i]+ms;
       while(j4+1<D4.t.length&&D4.t[j4+1]+Data.MS['4h']<=close)j4++;
       while(j1+1<D1.t.length&&D1.t[j1+1]+Data.MS['1d']<=close)j1++;
       const t4=j4>=0?b4[j4]:0,t1=j1>=0?b1[j1]:0;
-      x4[i]=t4;x1[i]=t1;bias[i]=t4===1&&t1>=0?1:t4===-1&&t1<=0?-1:0}
-    D.bias=bias;D.b4=x4;D.b1=x1;D.biasKey=key;return D}
+      x4[i]=t4;x1[i]=t1;i4[i]=j4;i1[i]=j1;bias[i]=t4===1&&t1>=0?1:t4===-1&&t1<=0?-1:0}
+    D.bias=bias;D.b4=x4;D.b1=x1;D.i4=i4;D.i1=i1;D.D4=D4;D.D1=D1;D.biasKey=key;return D}
 };

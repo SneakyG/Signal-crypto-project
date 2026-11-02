@@ -1,5 +1,5 @@
 /* Sổ lệnh: lưu lệnh đã đặt, theo dõi vòng đời tới khi đóng, lãi/lỗ realtime, hủy lệnh chờ, tự reset khi qua ngày. */
-const ST={P:'Chờ khớp',F:'Đã khớp',H:'Đã TP1 (SL về giá vào)',C:'Bỏ lệnh (mất tín hiệu)',X:'Hết hạn',U:'Bạn đã hủy',S:'Cắt lỗ',B:'TP1 rồi về hòa vốn',T:'Chốt TP2',E:'Cắt sớm'};
+const ST={P:'Chờ khớp',F:'Đã khớp',H:'Đã chốt 50% ở TP1 · SL = Entry',C:'Bỏ lệnh (mất tín hiệu)',X:'Hết hạn',U:'Bạn đã hủy',S:'Cắt lỗ',B:'TP1 rồi về hòa vốn',T:'Chốt TP2',E:'Cắt sớm'};
 const Book={
   data:{day:Fmt.day(),orders:[],log:[]},prev:null,
   isOpen:o=>o.st==='P'||o.st==='F'||o.st==='H',
@@ -18,7 +18,7 @@ const Book={
     if(this.data.day===Fmt.day())return;
     const done=this.data.orders.filter(o=>!Book.isOpen(o));if(done.length)this.prev={day:this.data.day,orders:done};
     this.data={day:Fmt.day(),orders:this.data.orders.filter(Book.isOpen),log:[]};this.save()},
-  add(o){this.data.orders.push(o);this.log('place',`Đặt lệnh ${o.side} ${Fmt.coin(o.s)} $${o.amt}`);this.save()},
+  add(o){this.data.orders.push(o);this.log('place',`Đặt lệnh ${o.side} ${Fmt.coin(o.s)}: ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} = vị thế $${(o.notional||o.amt).toFixed(0)}`);this.save()},
   cancel(id){
     const o=this.byId(id);if(!o||o.st!=='P')return false;
     o.st='U';o.x=Date.now();o.pnl=0;o.why='Bạn đã hủy lệnh chờ để đặt lại';this.log('cancel',`Hủy lệnh chờ ${Fmt.coin(o.s)}`);this.save();return true},
@@ -26,7 +26,14 @@ const Book={
   live(o){
     if(o.st!=='F'&&o.st!=='H')return null;
     const C=Data.cache[o.s+'|'+o.tf],px=Data.px[o.s]!=null?Data.px[o.s]:(C?C.c[C.c.length-1]:null);if(px==null)return null;
-    const rr=Life.mtm(o,px),pnl=Life.money(o,rr);return{px,rr,pnl,pct:pnl/o.amt*100}},
+    const rr=Life.mtm(o,px),pnl=Life.money(o,rr);return{px,rr,pnl,pct:pnl/o.amt*100,pctBal:pnl/(o.bal||UI.bal()||1)*100}},
+  // Số tiền còn có thể mất nếu chạm cắt lỗ hiện tại (sau TP1 cắt lỗ đã về giá vào nên chỉ còn phí)
+  riskNow(o){
+    if(!Book.isOpen(o))return 0;const N=o.notional||o.amt;
+    return o.st==='H'?N*2*FEE/100*0.5:N*(Math.abs(o.entry-o.sl)/o.entry+2*FEE/100)},
+  lev(o){return o.lev||1},
+  // Ký quỹ đang giữ bởi mọi lệnh mở (lệnh chờ khớp cũng giữ ký quỹ trên sàn)
+  marginUsed(){return this.data.orders.filter(Book.isOpen).reduce((a,o)=>a+(o.amt||0),0)},
   stats(l){
     const cl=l.filter(Book.isDone),w=cl.filter(z=>z.win).length;
     return{n:l.length,op:l.filter(Book.isOpen).length,cl:cl.length,cn:l.filter(Book.isCancel).length,
@@ -40,7 +47,7 @@ const Book={
       const key=o.s+'|'+o.tf;let D=cur[key];
       if(!D){try{D=cur[key]=await Sig.series(o.s,o.tf)}catch(e){continue}}
       const i=D.t.indexOf(o.sigT);if(i<0)continue;
-      const L=Life.run(D,i,{dirN:o.dir,entry:o.entry,sl:o.sl,tp1:o.tp1,tp2:o.tp2,R:o.R},Strat.impl[o.strat.base],o.P);
+      const L=Life.run(D,i,{dirN:o.dir,entry:o.entry,sl:o.sl,tp1:o.tp1,tp2:o.tp2,R:o.R,mkt:o.mkt},Strat.impl[o.strat.base],o.P);
       this.apply(o,L,D)}
     this.save()},
   apply(o,L,D){
@@ -52,16 +59,17 @@ const Book={
     if(L.tp1At!=null&&!o.tp1T){
       o.tp1T=Math.min(D.t[L.tp1At]+ms,Date.now());o.win=true;
       Notify.push('tp1',`<b>${name}</b> đạt TP1: tính là lệnh thắng, SL về giá vào`,
-        `🎯 ĐẠT TP1 ${name} (${o.tf})\nChốt 50% lệnh, dời cắt lỗ về giá vào ${Fmt.px(o.entry)}. Phần còn lại chạy tới TP2 ${Fmt.px(o.tp2)}. Tính là lệnh THẮNG.`,'up')}
+        `🎯 ĐẠT TP1 ${name} (${o.tf})\nChốt 50% lệnh, dời cắt lỗ về giá vào (entry) ${Fmt.px(o.entry)}. Phần còn lại chạy tới TP2 ${Fmt.px(o.tp2)}. Tính là lệnh THẮNG.`,'up')}
     o.st=L.st;
     if(Book.isOpen(o))return;
     o.x=Math.min(D.t[L.end]+ms,Date.now());o.why=L.why||null;
     if(Book.isDone(o)){
       o.rr=L.rr;o.exit=L.exit;o.win=L.win;o.pnl=Life.money(o,L.rr);
+      if(typeof AutoLab!=='undefined')AutoLab.rec(o.strat.id,`${o.s}|${o.sigT}|${o.strat.id}`,o.win,o.rr,'lệnh thật');
       const up=o.pnl>=0,head={S:'🛑 CẮT LỖ',B:'🟰 VỀ HÒA VỐN SAU TP1',T:'🏁 CHỐT TP2',E:'✂️ CẮT LỆNH SỚM'}[L.st];
       Notify.push(L.st==='E'?'cut':'close',
         `${L.st==='E'?'Cắt lệnh sớm':'Đóng lệnh'} <b>${name}</b>: <b class="${up?'up':'dn'}">${Fmt.sgn(o.pnl)}</b>${L.st==='E'?`<br><small>${L.why}</small>`:''}`,
-        `${head} ${name} (${o.tf})\n${L.why?'Lý do: '+L.why+'\n':''}Giá thoát ${Fmt.px(o.exit)}. ${up?'Lãi':'Lỗ'} ${Fmt.usd(Math.abs(o.pnl))} (${Fmt.pct(o.pnl/o.amt*100)}), đã trừ phí.${L.st==='E'?'\nHãy đóng vị thế này trên sàn nếu chưa đóng.':''}`,up?'up':'dn')}
+        `${head} ${name} (${o.tf})\n${L.why?'Lý do: '+L.why+'\n':''}Giá thoát ${Fmt.px(o.exit)}. ${up?'Lãi':'Lỗ'} ${Fmt.usd(Math.abs(o.pnl))} (${Fmt.pct(o.pnl/o.amt*100)} ký quỹ, ${Fmt.pct(o.pnl/(o.bal||UI.bal()||1)*100)} vốn), đã trừ phí.${L.st==='E'?'\nHãy đóng vị thế này trên sàn nếu chưa đóng.':''}`,up?'up':'dn')}
     else{
       o.pnl=0;
       Notify.push('cancel',`Lệnh chờ <b>${name}</b> bị bỏ: ${L.why}`,`❌ BỎ LỆNH CHỜ ${name} (${o.tf})\nLý do: ${L.why}. Hãy hủy lệnh limit ${Fmt.px(o.entry)} trên sàn nếu còn treo.`,'dn')}}

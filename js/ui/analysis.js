@@ -3,10 +3,12 @@ const Ana={
   init(){
     const coins=Scan.POP.map(s=>`<option value="${s}">${Fmt.coin(s)}</option>`).join('');
     $('bsym').innerHTML=coins;$('asym').innerHTML=coins;this.fillStrats();
-    $('brun').onclick=()=>this.backtest();$('arun').onclick=()=>this.analyze()},
+    $('brun').onclick=()=>this.backtest();$('arun').onclick=()=>this.analyze();$('bstrat').addEventListener('input',()=>this.lockBt())},
+  // Chiến lược chỉ dành cho một coin/khung (BTC x100) thì khóa ô chọn tương ứng
+  lockBt(){const v=Strat.byId($('bstrat').value),I=v&&Strat.impl[v.base];if(!I)return;if(I.only)$('bsym').value=I.only[0];if(I.tf)$('btf').value=I.tf;$('bsym').disabled=!!I.only;$('btf').disabled=!!I.tf},
   fillStrats(){
-    const cur=$('bstrat').value||Strat.active;
-    $('bstrat').innerHTML=Strat.usable().map(v=>`<option value="${v.id}"${v.id===cur?' selected':''}>${Strat.label(v)}</option>`).join('')},
+    const cur=$('bstrat').value||(Strat.isAuto()?'rsi2-v1':Strat.active);
+    $('bstrat').innerHTML=Strat.usable().map(v=>`<option value="${v.id}"${v.id===cur?' selected':''}>${Strat.label(v)}</option>`).join('');this.lockBt()},
 
   // ============ BACKTEST ============
   async backtest(){
@@ -49,7 +51,8 @@ const Ana={
     const s=$('asym').value,tf=UI.tf(),out=$('ares'),btn=$('arun');
     btn.disabled=true;out.innerHTML='<div class="empty">Đang phân tích đa khung và mô phỏng kịch bản…</div>';
     try{
-      const st=Strat.cur(),impl=Strat.I(),P=st.params,D=await Sig.series(s,tf,5000),D4=Data.cache[s+'|4h'],D1=Data.cache[s+'|1d'];
+      let st=Strat.forCoin(s);if(!Strat.fits(st,s,tf))st=Strat.byId('rsi2-v1');
+      const impl=Strat.impl[st.base],P=st.params,D=await Sig.series(s,tf,5000),D4=Data.cache[s+'|4h'],D1=Data.cache[s+'|1d'];
       await Data.prices();
       const n=D.c.length,k=n-2,price=Data.px[s]||D.c[n-1],I=Ind.prep(D),M=Strat.impl.smc,tw=t=>t>0?'Tăng':t<0?'Giảm':'Đi ngang / chưa rõ';
       const view=(X,name)=>{ // trạng thái một khung: xu hướng, cấu trúc, chỉ báo, vùng cung/cầu chưa chạm

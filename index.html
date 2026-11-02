@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tín hiệu - Bảng giao dịch</title>
+<meta name="theme-color" content="#08121f">
+<meta name="description" content="Bảng tín hiệu crypto realtime: đa khung 1D/4h, SMC/ICT, sổ lệnh và backtest.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
@@ -15,42 +19,46 @@
     <button data-p="main" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Bảng tín hiệu</span></button>
     <button data-p="book"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11"/></svg><span>Sổ lệnh</span><i id="nb"></i></button>
     <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Phân tích</span></button>
-    <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span></button>
+    <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span><i id="nn"></i></button>
     <button data-p="lab"><svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg><span>Chiến lược</span></button>
     <button data-p="set"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Cài đặt</span></button>
   </nav>
   <div class="live"><div class="lt"><span class="dot" id="st"></span><span>Cập nhật <b id="upd">chưa có</b></span></div><button class="ghost" id="alert">Bật cảnh báo</button></div>
 </header>
 <main>
+<div class="tape" id="tape" aria-label="Giá realtime"></div>
+<div class="netbar" id="netbar" hidden></div>
 
 <!-- ================= BẢNG TÍN HIỆU ================= -->
 <section class="page on" id="p-main">
-  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh. Bảng tự quét các coin phổ biến nhất và chọn coin có tỉ lệ thắng cao nhất.</p></div>
+  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, BTC x100 dùng 15m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–6 để chuyển trang.</p></div>
   <div class="strip ctl">
-    <label>Chiến lược<select id="strat" style="min-width:210px"></select></label>
-    <label>Khung nến vào lệnh<select id="tf"><option>5m</option><option selected>15m</option><option>1h</option></select></label>
+    <label>Chiến lược<select id="strat" style="min-width:260px"></select></label>
+    <label>Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
     <label>Vốn (USDT)<input id="bal" type="number" value="1000" min="10" style="width:120px"></label>
-    <label>Rủi ro tổng (%)<input id="risk" type="number" value="5" min="0.1" max="50" step="0.1" style="width:100px"></label>
+    <label title="Một lệnh chạm cắt lỗ thì mất bấy nhiêu % vốn (đã gồm phí). Vốn 1000$, 5% → mỗi lệnh thua mất 50$.">Rủi ro mỗi lệnh (% vốn)<input id="risk" type="number" value="5" min="0.1" max="20" step="0.1" style="width:110px"></label>
     <label>Số lệnh tối đa<select id="slots"><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option></select></label>
-    <label>Số coin theo dõi<select id="topk"><option>3</option><option selected>4</option></select></label>
+    <label>Số coin theo dõi<select id="topk"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option selected>10</option></select></label>
   </div>
   <div class="scanbar"><div class="sb" id="sb"><i id="sbar"></i></div><span class="mut" id="stext">Chưa quét</span><button class="ghost bx" id="rescan">Quét lại</button></div>
   <div class="kpis">
-    <div class="kpi"><i>Mỗi lệnh dùng</i><b id="k-per">-</b><small id="k-per2"></small></div>
-    <div class="kpi"><i>Đòn bẩy cần</i><b id="k-lev">-</b><small id="k-lev2"></small></div>
-    <div class="kpi"><i>Lỗ tối đa</i><b id="k-tot">-</b><small id="k-tot2"></small></div>
-    <div class="kpi ring"><svg viewBox="0 0 36 36"><circle class="bg" r="15.9" cx="18" cy="18"/><circle id="k-ring" r="15.9" cx="18" cy="18" pathLength="100"/></svg><div><i>Lệnh đang dùng</i><b id="k-used">0/20</b></div></div>
+    <div class="kpi"><i>Thua mỗi lệnh</i><b id="k-risk">-</b><small id="k-risk2"></small></div>
+    <div class="kpi"><i>Ký quỹ mỗi lệnh (ước tính)</i><b id="k-per">-</b><small id="k-per2"></small></div>
+    <div class="kpi"><i>Đòn bẩy</i><b id="k-lev">-</b><small id="k-lev2"></small></div>
+    <div class="kpi ring"><svg viewBox="0 0 36 36"><circle class="bg" r="15.9" cx="18" cy="18"/><circle id="k-ring" r="15.9" cx="18" cy="18" pathLength="100"/></svg><div><i>Ký quỹ đang giữ / vốn</i><b id="k-used">$0/$1000</b><small id="k-used2"></small></div></div>
+    <div class="kpi"><i>Rủi ro đang mở</i><b id="k-open">$0.00</b><small id="k-open2"></small></div>
     <div class="kpi"><i>Lãi/lỗ hôm nay</i><b id="k-pnl">$0.00</b><small id="k-pnl2"></small></div>
   </div>
   <div class="sec">Đang có tín hiệu<span class="cnt" id="na">0</span></div>
   <div class="grid" id="grid"></div>
+  <div class="grid" id="skel"><div class="card skc"><i></i><i></i><i></i><i></i></div><div class="card skc"><i></i><i></i><i></i><i></i></div><div class="card skc"><i></i><i></i><i></i><i></i></div></div>
   <div id="none"><span class="radar"></span><div><b>Chưa có tín hiệu nào đủ điều kiện</b><br>Bảng đang quét các coin đã chọn. Khi có lệnh chờ hoặc lệnh đã khớp, thẻ sẽ hiện ở đây kèm nút Đặt lệnh.</div></div>
   <div class="sec">Đang theo dõi<span class="cnt" id="nw">0</span></div>
   <div class="wait" id="wait"></div>
   <div id="errs"></div>
   <div class="sec">Xếp hạng quét realtime<span class="cnt" id="nr">0</span></div>
-  <div class="panel"><p class="note" style="margin-top:0">20 coin phổ biến nhất trên Binance Futures, backtest theo chiến lược đang chọn rồi xếp theo cận dưới tỉ lệ thắng (cần tối thiểu 8 lệnh khớp). Coin được tô xanh là coin đang theo dõi. Bấm tên coin để mở biểu đồ Futures trên TradingView.</p><div id="rank"></div></div>
-  <p class="foot">Tín hiệu chốt trên nến đã đóng nên không bị đổi ý. Nút Đặt lệnh chỉ ghi nhận và theo dõi lệnh trong bảng này, không gửi lệnh lên sàn. Mỗi coin chỉ đặt được một lệnh tại một thời điểm, lệnh mới chỉ đặt được sau khi lệnh trước đó đóng. Đây là công cụ phân tích theo quy tắc kỹ thuật, không phải lời khuyên đầu tư và không đảm bảo lợi nhuận. Không có chiến lược nào thắng 90% ổn định: hãy nhìn số backtest thật ở mỗi thẻ, luôn đặt cắt lỗ, thử bằng tài khoản demo trước.</p>
+  <div class="panel"><p class="note" style="margin-top:0">30 coin phổ biến nhất trên Binance Futures, backtest theo chiến lược đang chọn (chế độ Tự động: thử mọi chiến lược cho từng coin và giữ chiến lược tốt nhất), xếp theo cận dưới tỉ lệ thắng (cần tối thiểu 8 lệnh khớp). Coin được tô xanh là coin đang theo dõi. Bấm tên coin để mở biểu đồ Futures trên TradingView.</p><div id="rank"></div></div>
+  <p class="foot">Tín hiệu chốt trên nến đã đóng nên không bị đổi ý. Nút Đặt lệnh chỉ ghi nhận và theo dõi lệnh trong bảng này, không gửi lệnh lên sàn. Mỗi coin chỉ đặt được một lệnh tại một thời điểm, lệnh mới chỉ đặt được sau khi lệnh trước đó đóng. Khối lượng tự tính để một lệnh thua mất đúng % vốn đã chọn; ký quỹ không bao giờ vượt vốn và đòn bẩy được giới hạn để giá thanh lý nằm xa hơn cắt lỗ. Đây là công cụ phân tích theo quy tắc kỹ thuật, không phải lời khuyên đầu tư và không đảm bảo lợi nhuận. Không có chiến lược nào thắng 90% ổn định: hãy nhìn số backtest thật ở mỗi thẻ, luôn đặt cắt lỗ, thử bằng tài khoản demo trước.</p>
 </section>
 
 <!-- ================= SỔ LỆNH ================= -->
@@ -62,9 +70,9 @@
   <div class="sec">Lệnh chờ khớp<span class="cnt" id="np">0</span></div><div id="tpend"></div>
   <div class="sec">Lệnh đã khớp<span class="cnt" id="nf">0</span></div><div id="tfill"></div>
   <div class="sec">Lịch sử lệnh đã đóng<span class="cnt" id="nh">0</span></div>
-  <div class="fl" id="fl"></div><div id="hist"></div>
+  <div id="hsum"></div><div class="fl" id="fl"></div><div id="hist"></div>
   <div class="sec">Hoạt động hôm nay</div><div class="log" id="actlog"></div>
-  <p class="foot">Lệnh đã khớp có lãi/lỗ chạy realtime (giá cập nhật 3 giây một lần). Khi lệnh đóng, lãi/lỗ được chốt và không đổi nữa. Lệnh tính là THẮNG khi đã đạt TP1 (chốt 50%, dời cắt lỗ về giá vào, phần còn lại chạy tới TP2). Chiến lược tự cắt sớm khi hết hy vọng thắng và báo cho bạn. Qua ngày mới, lịch sử và thống kê tự xoá (lệnh đang mở vẫn được theo dõi). Lãi lỗ đã trừ phí 0,05% mỗi chiều. Bấm vào tiêu đề cột để sắp xếp.</p>
+  <p class="foot">Lệnh đã khớp có lãi/lỗ chạy realtime (giá cập nhật 3 giây một lần); dòng đạt TP1 được tô xanh, cắt lỗ đã dời về giá vào nên rủi ro còn 0%. % lãi/lỗ tính trên ký quỹ (như ROE trên sàn), kèm % trên vốn. Khi lệnh đóng, lãi/lỗ được chốt và không đổi nữa. Lệnh tính là THẮNG khi đã chạm TP1 (chốt 50%, dời cắt lỗ về giá vào, phần còn lại chạy tới TP2); chưa chạm TP1 là THUA, kể cả khi cắt sớm có lãi nhỏ. Tỉ lệ thắng của chiến lược, tự học và backtest đều tính theo quy tắc này. Chiến lược tự cắt sớm khi hết hy vọng thắng và báo cho bạn. Qua ngày mới, lịch sử và thống kê tự xoá (lệnh đang mở vẫn được theo dõi). Lãi lỗ đã trừ phí 0,05% mỗi chiều. Bấm vào tiêu đề cột để sắp xếp. Bấm vào một dòng lệnh chờ hoặc đã khớp để xem lệnh trên biểu đồ (vùng Long/Short, Entry, SL, TP1, TP2).</p>
 </section>
 
 <!-- ================= PHÂN TÍCH ================= -->
@@ -94,7 +102,7 @@
         <li><b>1R</b> = khoảng cách từ giá vào tới cắt lỗ. Cắt lỗ = −1R. TP1 = +1,5R, TP2 = +3R.</li>
         <li>Chạm TP1: chốt 50% vị thế, dời cắt lỗ về giá vào. Từ lúc này lệnh không thể lỗ nữa và <b>được tính là lệnh THẮNG</b>.</li>
         <li>Phần còn lại: chạm TP2 thì chốt hết (+2,25R tổng); quay về giá vào thì hòa vốn phần còn lại (+0,75R tổng).</li>
-        <li><b>Cắt sớm</b>: nếu chiến lược thấy hết hy vọng (khung lớn đảo chiều, mất động lượng, quá lâu không chạy) thì thoát tại giá đóng nến và báo cho bạn.</li>
+        <li><b>Cắt sớm</b>: nếu chiến lược thấy hết hy vọng (khung lớn đảo chiều, mất động lượng, quá lâu không chạy) thì thoát tại giá đóng nến và báo cho bạn. Cắt sớm trước TP1 tính là THUA.</li>
         <li>Trong cùng một nến mà chạm cả cắt lỗ lẫn chốt lời thì tính là chạm cắt lỗ (bảo thủ, không tự khen).</li>
       </ul>
       <p><b>Ý nghĩa các con số</b></p>
@@ -118,13 +126,13 @@
     <div class="ctl">
       <label>Chiến lược<select id="bstrat" style="min-width:190px"></select></label>
       <label>Coin<select id="bsym"></select></label>
-      <label>Khung nến<select id="btf"><option>5m</option><option selected>15m</option><option>1h</option></select></label>
+      <label>Khung nến<select id="btf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
       <label>Số nến<select id="bn"><option>1000</option><option selected>3000</option><option>5000</option></select></label>
       <label>Phí mỗi chiều (%)<input id="bfee" type="number" value="0.05" min="0" step="0.01" style="width:100px"></label>
       <label>Hiệu lực lệnh chờ (nến)<input id="bw" type="number" value="3" min="1" style="width:100px"></label>
       <label>Số nến giữ tối đa<input id="bmh" type="number" value="48" min="2" style="width:100px"></label>
       <label>Vốn (USDT)<input id="bcap" type="number" value="1000" min="10" style="width:100px"></label>
-      <label>Rủi ro mỗi lệnh (%)<input id="brisk" type="number" value="1" min="0.1" step="0.1" style="width:100px"></label>
+      <label>Rủi ro mỗi lệnh (% vốn)<input id="brisk" type="number" value="5" min="0.1" step="0.1" style="width:100px"></label>
       <button id="brun">Chạy backtest</button>
     </div>
     <div id="bres"></div>
@@ -133,29 +141,39 @@
 
 <!-- ================= TIN TỨC ================= -->
 <section class="page" id="p-news">
-  <div class="pt"><div class="ph"><h1>Tin tức</h1><p>Tin từ các toà soạn crypto uy tín (CoinDesk, Cointelegraph, Decrypt, The Block, CryptoSlate, Bitcoin Magazine). Màu xanh là tin tăng, đỏ là tin giảm.</p></div><div class="acts"><button class="ghost" id="nrefresh">Tải lại</button></div></div>
+  <div class="pt"><div class="ph"><h1>Tin tức</h1><p>Tin từ các toà soạn crypto uy tín (CoinDesk, Cointelegraph, Decrypt, The Block, CryptoSlate, Bitcoin Magazine). Tự cập nhật mỗi 60 giây. Màu xanh là tin tăng, đỏ là tin giảm, nhãn MỚI là tin vừa xuất hiện.</p></div><div class="acts"><span id="nclock"></span><button class="ghost" id="nrefresh">Tải lại ngay</button></div></div>
   <div id="nchips"></div><div id="nsum"></div><div id="nlist"></div>
 </section>
 
 <!-- ================= CHIẾN LƯỢC ================= -->
 <section class="page" id="p-lab">
-  <div class="ph"><h1>Chiến lược</h1><p>Các phiên bản chiến lược, học từ lệnh thua, lưu mốc 70% và 90% để có bản dự phòng.</p></div>
-  <section class="panel">
-    <h2>Hai chiến lược có sẵn</h2>
-    <p class="note"><b>Chiến lược của bạn (EMA đa khung):</b> 4h cho hướng (1D không được ngược chiều), khung nhỏ vào lệnh khi EMA20/50/200, MACD, RSI, volume và "không đuổi giá" đồng thuận. Đặt lệnh chờ hồi về một phần ATR. Có 3 bộ lọc SMC tuỳ chọn (Discount/Premium, quét thanh khoản, vùng OB/FVG) mặc định tắt; bộ học sẽ thử bật và chỉ giữ lại nếu thật sự làm tăng tỉ lệ thắng.</p>
-    <p class="note"><b>SMC / ICT:</b> 1D/4h cho hướng. Khung nhỏ tìm Order Block và Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt giữa vùng, cắt lỗ ngoài vùng.</p>
+  <div class="ph"><h1>Chiến lược</h1><p>Bảng tự đánh giá và tự học lại chiến lược, bạn chỉ cần chọn phiên bản để dùng.</p></div>
+  <section class="panel flow">
+    <div class="steps">
+      <div class="stp"><b>1</b><div><h3>Dùng và ghi kết quả</h3><p>Mỗi lệnh kết thúc (lệnh bạn đặt hoặc tín hiệu bảng đang theo dõi) được ghi vào phiên bản đã tạo ra nó.</p></div></div>
+      <div class="stp"><b>2</b><div><h3>Đủ 10 lệnh thì đánh giá</h3><p>Thắng ≥ 7/10: giữ nguyên. Thắng &lt; 7/10: tự học lại từ các lệnh thua.</p></div></div>
+      <div class="stp"><b>3</b><div><h3>Đạt 70% → lưu và học tiếp</h3><p>10 lệnh kiểm chứng thắng ≥ 7: lưu bản ✓70% rồi nhân bản học tiếp.</p></div></div>
+      <div class="stp"><b>4</b><div><h3>Đạt 90% → bản dự phòng</h3><p>Thắng ≥ 9/10: lưu bản ★90%. Cả ✓70% và ★90% chọn được ở Bảng tín hiệu.</p></div></div>
+    </div>
+    <div class="row2" style="margin-top:12px"><label class="sw"><input type="checkbox" id="alon"><span></span>Tự học tự động</label><span class="mut" id="alst"></span></div>
   </section>
-  <section class="panel">
-    <h2>Học để nâng cấp</h2>
-    <p class="note">Bộ học chia dữ liệu theo thời gian: 60% đầu để học, 40% mới nhất để kiểm chứng (không dùng để chọn tham số). Mỗi bước, bộ học phân tích nguyên nhân các lệnh thua, thử siết từng tham số một nấc và giữ nấc nào làm tăng tỉ lệ thắng mà không làm xấu phần kiểm chứng. <b>Mốc ✓70%:</b> 10 lệnh kiểm chứng gần nhất thắng từ 7 lệnh trở lên (và lãi kỳ vọng dương) → lưu phiên bản rồi nhân bản ra bản mới để học tiếp. <b>Mốc ★90%:</b> thắng từ 9/10 → lưu thêm một bản dự phòng. Khi các bản mới thua nhiều dần, bạn chọn lại bản đã lưu ở bảng dưới. Lưu ý: 10 lệnh là mẫu nhỏ, đạt mốc có thể do may mắn; hãy xem thêm tỉ lệ thắng tổng và cận dưới.</p>
-    <div class="ctl">
+  <div id="lcards" class="lcards"></div>
+  <div class="sec">Nhật ký tự học</div><div class="log" id="llog"></div>
+  <details class="acc"><summary>Học thủ công và bảng phiên bản chi tiết</summary>
+    <div class="ctl" style="margin:6px 0 12px">
       <label>Học từ phiên bản<select id="lbase" style="min-width:210px"></select></label>
       <label>Số bước tối đa<input id="liters" type="number" value="8" min="1" max="20" style="width:100px"></label>
-      <button id="lrun">Học ngay</button><button class="ghost" id="lstop" disabled>Dừng</button>
+      <button id="lrun">Học ngay</button><button class="ghost" id="lstop">Dừng</button>
     </div>
-    <div class="log" id="llog" style="margin-top:12px"></div>
+    <p class="note">Bộ học chia dữ liệu theo thời gian: 60% đầu để học, 40% mới nhất để kiểm chứng. Mỗi bước phân tích nguyên nhân các lệnh thua, thử siết từng tham số một nấc và giữ nấc nào làm tăng tỉ lệ thắng mà không làm xấu phần kiểm chứng. 10 lệnh là mẫu nhỏ, đạt mốc có thể do may mắn.</p>
+    <div id="lvers"></div>
+  </details>
+  <section class="panel">
+    <h2>Mô tả chi tiết các chiến lược</h2>
+    <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 4 ATR, TP1 0,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 1R, thoát sớm khi giá hồi về SMA5 có lãi. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 02/11/2026): 1.106 lệnh, thắng 73,5%, nhưng lãi kỳ vọng −0,02R/lệnh sau phí, tức gần hòa vốn. Tỉ lệ thắng cao vì TP1 nhỏ; một lệnh thua bằng khoảng hai lệnh thắng.</p>
+    <p class="note"><b>BTC x100 · SMC/ICT hợp lưu:</b> chỉ BTC, khung 15m, đòn bẩy cố định x100. 1D/4h cho hướng. Chờ <b>quét thanh khoản</b> (đáy/đỉnh cũ, đáy/đỉnh ngày hôm trước, đáy/đỉnh phiên Á) → <b>phá cấu trúc có lực (MSS)</b> → đặt lệnh chờ ở <b>giữa FVG/OB</b> của nhịp phá. Cộng điểm khi có vùng Discount/Premium 4h, OTE 62–79%, kill zone London (14–17h VN) / New York (19–23h VN), <b>SMT phân kỳ với ETH</b> và volume nhịp phá. Cắt lỗ ngoài cú quét, tối đa 0,45% vì thanh lý x100 chỉ cách ≈ 0,6%. TP1 1,5R chốt 50%, dời cắt lỗ về giá vào, TP2 3R chốt hết. Vẫn giữ 1 lệnh thua = % vốn đã chọn.</p>
+    <p class="note"><b>SMC / ICT:</b> 1D/4h cho hướng. Khung nhỏ tìm Order Block và Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt giữa vùng, cắt lỗ ngoài vùng.</p>
   </section>
-  <div class="sec">Các phiên bản</div><div id="lvers"></div>
 </section>
 
 <!-- ================= CÀI ĐẶT ================= -->
@@ -192,18 +210,23 @@
 <script src="js/strategies/registry.js"></script>
 <script src="js/strategies/smc.js"></script>
 <script src="js/strategies/ema.js"></script>
+<script src="js/strategies/rsi2.js"></script>
+<script src="js/strategies/btc100.js"></script>
 <script src="js/trading/lifecycle.js"></script>
 <script src="js/trading/backtest.js"></script>
 <script src="js/trading/sizing.js"></script>
 <script src="js/trading/book.js"></script>
 <script src="js/trading/scan.js"></script>
+<script src="js/trading/calib.js"></script>
 <script src="js/learning/learner.js"></script>
+<script src="js/learning/autolab.js"></script>
 <script src="js/services/telegram.js"></script>
 <script src="js/services/notify.js"></script>
 <script src="js/services/xlsx.js"></script>
 <script src="js/services/news.js"></script>
 <script src="js/ui/signals.js"></script>
 <script src="js/ui/tick.js"></script>
+<script src="js/ui/chart.js"></script>
 <script src="js/ui/book-page.js"></script>
 <script src="js/ui/analysis.js"></script>
 <script src="js/ui/news-page.js"></script>

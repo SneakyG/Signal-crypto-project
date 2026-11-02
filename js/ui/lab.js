@@ -1,38 +1,44 @@
-/* Trang Chiến lược: các phiên bản, học từ lệnh thua, mốc 70% (✓) và 90% (★) */
+/* Trang Chiến lược: mỗi chiến lược là một thẻ gồm các phiên bản (gốc → ✓70% → ★90%), kết quả 10 lệnh gần nhất,
+   trạng thái tự học và nút dùng phiên bản. Phần học thủ công và bảng chi tiết nằm trong mục thu gọn. */
 const Lab={
-  lines:[],
   init(){
     $('lrun').onclick=()=>this.run();$('lstop').onclick=()=>Learn.stop();
+    $('alon').checked=AutoLab.on;
+    $('alon').addEventListener('change',()=>{AutoLab.on=$('alon').checked;Store.set('autolab',AutoLab.on);AutoLab.say(AutoLab.on?'Đã bật tự học tự động.':'Đã tắt tự học tự động.');this.render()});
     $('p-lab').addEventListener('click',e=>{
       const u=e.target.closest&&e.target.closest('[data-use]');
-      if(u){Strat.active=u.dataset.use;Strat.save();UI.fillStrat();Ana.fillStrats();this.render();Sig.reload();return}
-      const l=e.target.closest&&e.target.closest('[data-learn]');if(l){$('lbase').value=l.dataset.learn;this.run();return}
+      if(u){Strat.active=u.dataset.use;Strat.save();UI.fillStrat();Ana.fillStrats();this.render();toast(`Đang dùng <b>${esc(Strat.label(Strat.cur()))}</b> ở Bảng tín hiệu.`,'up');Sig.reload();return}
+      const l=e.target.closest&&e.target.closest('[data-learn]');if(l){AutoLab.say(`Bạn yêu cầu học ngay ${Strat.label(Strat.byId(l.dataset.learn))}.`);AutoLab.enqueue(l.dataset.learn);return}
       const d=e.target.closest&&e.target.closest('[data-del]');
-      if(d&&confirm('Xóa phiên bản này?')){Strat.list=Strat.list.filter(v=>v.id!==d.dataset.del);if(!Strat.byId(Strat.active)||Strat.byId(Strat.active).status==='learning')Strat.active=Strat.list.find(v=>v.status==='base').id;
+      if(d&&confirm('Xóa phiên bản này?')){Strat.list=Strat.list.filter(v=>v.id!==d.dataset.del);if(!Strat.isAuto()&&!Strat.byId(Strat.active))Strat.active='auto';
         Strat.save();UI.fillStrat();Ana.fillStrats();this.render()}})},
+  renderLog(){put($('llog'),AutoLab.lines.length?AutoLab.lines.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.m)}</p>`).join(''):'<p class="mut">Chưa có hoạt động. Bảng sẽ ghi lại mỗi lần đánh giá 10 lệnh và mỗi lần tự học.</p>')},
+  card(base){
+    const im=Strat.impl[base],vs=Strat.list.filter(v=>v.base===base).sort((a,b)=>a.ver-b.ver),used=v=>Strat.active===v.id||(Strat.isAuto()&&Object.values(Scan.best).includes(v.id));
+    const st={base:['Bản gốc',''],learning:['Đang học','P'],saved70:['✓ Đạt 70%','F'],saved90:['★ Đạt 90%','T']};
+    const ver=v=>{const s=AutoLab.stats(v),busy=AutoLab.running===v.id||(AutoLab.running&&Strat.byId(AutoLab.running)&&Strat.byId(AutoLab.running).parent===v.id),q=AutoLab.queue.includes(v.id),pct=s.last?s.w/s.last*100:0;
+      return`<div class="vn ${st[v.status][1]}${used(v)?' use':''}">
+        <div class="vh"><b>v${v.ver}</b><span class="st ${st[v.status][1]}">${st[v.status][0]}</span>${used(v)?'<span class="tag up">đang dùng</span>':''}</div>
+        <div class="vbar"><i style="width:${Math.min(100,s.fresh*10)}%"></i></div>
+        <small>${v.status==='learning'?esc(v.stats?`Kiểm chứng: 10 lệnh cuối thắng ${v.stats.last10}/${v.stats.n10}, tỉ lệ thắng ${v.stats.va.win.toFixed(0)}%`:'Đang được bộ học tinh chỉnh'):`${s.fresh}/10 lệnh mới · 10 lệnh gần nhất thắng <b class="${pct>=70?'up':s.last?'dn':''}">${s.w}/${s.last}</b>`}</small>
+        ${busy?'<small class="warn">⏳ Đang tự học…</small>':q?'<small class="warn">Trong hàng chờ tự học</small>':''}
+        <div class="vact">${v.status!=='learning'&&Strat.active!==v.id?`<button class="bx" data-use="${v.id}">Dùng</button>`:''}<button class="bx ghost" data-learn="${v.id}">Học ngay</button>${v.status!=='base'?`<button class="bx ghost dn" data-del="${v.id}">Xóa</button>`:''}</div></div>`};
+    return`<div class="lcard"><div class="lch"><h2>${esc(im.name)}</h2><span class="mut">${im.tf?'Khung '+im.tf:''}${im.only?' · chỉ '+im.only.map(Fmt.coin).join(', '):''}</span></div>
+      <p class="note">${esc(im.desc)}</p><div class="vline">${vs.map(ver).join('<span class="arr">→</span>')}</div></div>`},
   render(){
+    put($('lcards'),Strat.ORDER.filter(b=>Strat.impl[b]&&!Strat.impl[b].hidden).map(b=>this.card(b)).join(''));
+    $('alon').checked=AutoLab.on;$('alst').textContent=AutoLab.running?`Đang tự học ${Strat.label(Strat.byId(AutoLab.running)||{base:'rsi2',ver:'?',status:'base'})}…`:AutoLab.queue.length?`${AutoLab.queue.length} phiên bản trong hàng chờ`:AutoLab.on?'Đang theo dõi kết quả':'Đã tắt';
     const cur=$('lbase').value;
-    $('lbase').innerHTML=Strat.list.slice().sort((a,b)=>a.base.localeCompare(b.base)||a.ver-b.ver).map(v=>`<option value="${v.id}"${v.id===(cur||Strat.active)?' selected':''}>${Strat.label(v)}</option>`).join('');
+    $('lbase').innerHTML=Strat.list.filter(v=>!Strat.impl[v.base].hidden).sort((a,b)=>a.base.localeCompare(b.base)||a.ver-b.ver).map(v=>`<option value="${v.id}"${v.id===cur?' selected':''}>${Strat.label(v)}</option>`).join('');
     const diff=v=>{const d=Strat.impl[v.base].defaults,a=Object.keys(v.params).filter(k=>v.params[k]!==d[k]).map(k=>`${k}=${v.params[k]}`);return a.length?a.join(', '):'giống bản gốc'};
     const sv=(s,k)=>s&&s[k]&&s[k].n?`${s[k].win.toFixed(0)}% (${s[k].n} lệnh)`:'-';
-    const bd={base:'Bản gốc',learning:'Đang học',saved70:'✓ Đạt 70%',saved90:'★ Đạt 90% (dự phòng)'};
     Tbl.render('lab',$('lvers'),[
-      {k:'name',h:'Phiên bản',v:v=>v.base+String(v.ver).padStart(3,'0'),f:v=>`<b>${Strat.label(v)}</b>${v.id===Strat.active?' <span class="tag up">đang dùng</span>':''}<span class="sub">${v.parent?'nhân bản từ '+Strat.label(Strat.byId(v.parent)||{base:v.base,ver:'?',status:'base'}):'phiên bản gốc'}</span>`},
-      {k:'status',h:'Trạng thái',v:v=>v.status,f:v=>`<span class="st ${v.status==='saved90'?'T':v.status==='saved70'?'F':v.status==='learning'?'P':''}">${bd[v.status]}</span>`},
+      {k:'name',h:'Phiên bản',v:v=>v.base+String(v.ver).padStart(3,'0'),f:v=>`<b>${Strat.label(v)}</b>`},
       {k:'tr',h:'Huấn luyện',v:v=>v.stats?v.stats.tr.win:-1,f:v=>sv(v.stats,'tr')},
       {k:'va',h:'Kiểm chứng',v:v=>v.stats?v.stats.va.win:-1,f:v=>sv(v.stats,'va')},
-      {k:'l10',h:'10 lệnh cuối',v:v=>v.stats?v.stats.last10:-1,f:v=>v.stats?`${v.stats.last10}/${v.stats.n10} thắng`:'-'},
-      {k:'avg',h:'Lãi kỳ vọng',v:v=>v.stats?v.stats.va.avg:-9,f:v=>v.stats&&v.stats.va.n?`${v.stats.va.avg>=0?'+':''}${v.stats.va.avg.toFixed(2)}R`:'-'},
-      {k:'diff',h:'Thay đổi',v:diff,f:v=>`<span class="sub">${esc(diff(v))}</span>`},
-      {k:'at',h:'Cập nhật',v:v=>v.stats?v.stats.at:v.created,f:v=>Fmt.ago(v.stats?v.stats.at:v.created)},
-      {k:'act',h:'Thao tác',f:v=>`${v.status!=='learning'&&v.id!==Strat.active?`<button class="bx" data-use="${v.id}">Dùng làm chính</button> `:''}<button class="bx ghost" data-learn="${v.id}">Học tiếp</button>${v.status!=='base'?` <button class="bx dn" data-del="${v.id}">Xóa</button>`:''}`}
-    ],Strat.list,{def:{k:'name',d:1}});
-    $('llog').innerHTML=this.lines.join('')||'<p class="mut">Chưa chạy học. Chọn phiên bản và bấm Học ngay.</p>'},
-  async run(){
-    if(Learn.running)return;
-    const coins=[...new Set([...Sig.focus,'BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','DOGEUSDT'])].slice(0,6);
-    const say=m=>{this.lines.unshift(`<p><time>${Fmt.hm(Date.now())}</time>${esc(m)}</p>`);if(this.lines.length>80)this.lines.pop();$('llog').innerHTML=this.lines.join('')};
-    $('lrun').disabled=true;$('lstop').disabled=false;say(`Học trên ${coins.map(c=>Fmt.coin(c)).join(', ')}, khung ${UI.tf()}, 5000 nến mỗi coin.`);
-    await Learn.run($('lbase').value,{coins,tf:UI.tf(),iters:Math.max(1,+$('liters').value||8)},say);
-    $('lrun').disabled=false;$('lstop').disabled=true;UI.fillStrat();Ana.fillStrats();this.render()}
+      {k:'live',h:'Kết quả thật / theo dõi',v:v=>AutoLab.stats(v).total,f:v=>{const s=AutoLab.stats(v);return s.total?`${s.all}/${s.total} thắng`:'-'}},
+      {k:'diff',h:'Thay đổi so với bản gốc',v:diff,f:v=>`<span class="sub">${esc(diff(v))}</span>`}
+    ],Strat.list.filter(v=>!Strat.impl[v.base].hidden),{def:{k:'name',d:1}});
+    this.renderLog()},
+  run(){const id=$('lbase').value;$('liters').value;AutoLab.say(`Học thủ công ${Strat.label(Strat.byId(id))}.`);AutoLab.enqueue(id)}
 };

@@ -1,17 +1,21 @@
 /* Khởi động ứng dụng: nạp dữ liệu đã lưu, gắn sự kiện, chạy vòng làm mới (15 giây), quét coin (5 phút) và cập nhật giá (3 giây) */
 (async function boot(){
   Strat.init();Book.load();UI.load();UI.fillStrat();
-  const pages={main:()=>Sig.render(),book:()=>BookPage.render(),ana:()=>Ana.fillStrats(),news:()=>{if(!NewsPage.loaded)NewsPage.load()},lab:()=>Lab.render(),set:()=>{}};
+  const pages={main:()=>Sig.render(),book:()=>BookPage.render(),ana:()=>Ana.fillStrats(),news:()=>{$('nn').textContent='';NewsPage.render()},lab:()=>Lab.render(),set:()=>{}};
   document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
     scrollTo(0,0);pages[b.dataset.p]()});
   $('alert').onclick=()=>{Notify.enable();$('alert').textContent='Cảnh báo đang bật'};
   TG.init();Sig.init();BookPage.init();Ana.init();NewsPage.init();Lab.init();Settings.init();
-  Sig.render();Lab.render();
-  setInterval(()=>Tick.run(),3000);Tick.run();
+  Sig.render();Lab.render();NewsPage.load();
+  document.addEventListener('keydown',e=>{ // phím tắt 1–6 để chuyển trang
+    if(e.target.closest&&e.target.closest('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
+    const b=document.querySelectorAll('#nav button')[+e.key-1];if(b)b.click()});
+  setInterval(()=>Tick.run(),3000);Tick.run();setInterval(()=>NetBar.paint(),1000);
   await Sig.refresh();                                   // hiện nhanh với danh sách coin đã lưu
-  Scan.run().then(()=>Sig.refresh());                    // quét realtime chọn coin theo chiến lược, xong thì làm mới
+  const scan=()=>Scan.run().then(()=>Sig.refresh()).then(()=>Calib.run(Sig.focus,UI.tf())).then(()=>Sig.refresh()); // quét chọn coin → tối ưu SL/TP → làm mới
+  scan();
   setInterval(()=>Sig.refresh(),15000);
-  setInterval(()=>Scan.run().then(()=>Sig.refresh()),300000);
+  setInterval(scan,300000);
 })();

@@ -2,7 +2,7 @@
    Có thêm 3 bộ lọc SMC tuỳ chọn (Discount/Premium, quét thanh khoản, vùng OB/FVG). Mặc định TẮT; bộ học sẽ thử bật
    và chỉ giữ lại bộ lọc nào thực sự làm tăng tỉ lệ thắng ("hợp thì viết vào"). */
 Strat.impl.ema={
-  short:'Chiến lược của bạn',
+  short:'EMA cũ',hidden:true,
   name:'Chiến lược của bạn (EMA đa khung 1D/4h → khung nhỏ)',
   desc:'Khung 4h (và 1D không được ngược chiều) cho hướng. Khung nhỏ chỉ vào lệnh theo hướng đó khi EMA20/50/200 đúng chiều, MACD cùng chiều, RSI vùng khoẻ, volume cao hơn trung bình, không đuổi giá. Đặt lệnh chờ hồi về một phần ATR; cắt lỗ theo ATR.',
   defaults:{minScore:5,rsiLo:45,rsiHi:68,volMult:1.2,ext:1.5,trendStr:0,needD1:false,needDisc:false,needSweep:false,needZone:false,pb:0.5,slx:1.5,tp1R:1.5,tp2R:3,hold:12,W:3,maxHold:48},
@@ -14,14 +14,14 @@ Strat.impl.ema={
     const L=[bias===1&&(!P.needD1||b1===1),c>I.e200[i]&&I.e20[i]>I.e50[i]&&str>=P.trendStr,hs>0&&hs>hp,r>=P.rsiLo&&r<=P.rsiHi,vr>P.volMult,c-I.e20[i]<P.ext*A];
     const S=[bias===-1&&(!P.needD1||b1===-1),c<I.e200[i]&&I.e20[i]<I.e50[i]&&str>=P.trendStr,hs<0&&hs<hp,r>=100-P.rsiHi&&r<=100-P.rsiLo,vr>P.volMult,I.e20[i]-c<P.ext*A];
     const sl=L.filter(Boolean).length,ss=S.filter(Boolean).length,lg=sl>=ss,ck=lg?L:S,sc=lg?sl:ss,dirN=lg?1:-1;
-    const base={dir:lg?'LONG':'SHORT',dirN,score:sc,checks:ck.map((ok,k)=>[this.labels[k],ok]),A};
+    const base={dir:lg?'LONG':'SHORT',dirN,score:sc,checks:ck.map((ok,k)=>[this.labels[k],ok]),req:[0,1],min:P.minScore,A};
     if(!(ck[0]&&ck[1]&&sc>=P.minScore))return{...base,side:'CHỜ'};
     const R=P.slx*A,entry=c-dirN*P.pb*A;
     if(P.needDisc||P.needSweep||P.needZone){ // bộ lọc SMC tuỳ chọn
       const M=Strat.impl.smc,S2=M.prep(D,M.defaults),eq=(S2.hiAt[i]+S2.loAt[i])/2;
-      if(P.needDisc&&!(lg?entry<eq:entry>eq))return{...base,side:'CHỜ'};
-      if(P.needSweep&&!((lg?S2.swU[i]:S2.swD[i])>=i-30))return{...base,side:'CHỜ'};
-      if(P.needZone&&!M.findZone(S2,i,dirN,M.defaults,A,c))return{...base,side:'CHỜ'}}
+      if(P.needDisc&&!(lg?entry<eq:entry>eq))return{...base,side:'CHỜ',gate:`Bộ lọc SMC (bộ học đã bật): giá vào chưa nằm ở vùng ${lg?'Discount (dưới 50% biên độ)':'Premium (trên 50% biên độ)'}`};
+      if(P.needSweep&&!((lg?S2.swU[i]:S2.swD[i])>=i-30))return{...base,side:'CHỜ',gate:'Bộ lọc SMC (bộ học đã bật): 30 nến gần nhất chưa có cú quét thanh khoản'};
+      if(P.needZone&&!M.findZone(S2,i,dirN,M.defaults,A,c))return{...base,side:'CHỜ',gate:'Bộ lọc SMC (bộ học đã bật): không có vùng OB/FVG chưa chạm gần giá'}}
     return{...base,side:lg?'LONG':'SHORT',entry,R,sl:entry-dirN*R,tp1:entry+dirN*P.tp1R*R,tp2:entry+dirN*P.tp2R*R,
       feat:{vr,rsi:r,ext:(lg?c-I.e20[i]:I.e20[i]-c)/A,str,b1ok:b1===dirN,hour:new Date(D.t[i]).getUTCHours(),atrPct:A/c*100}}},
   exit(D,j,pos,P){
