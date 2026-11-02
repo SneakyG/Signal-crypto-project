@@ -6,6 +6,11 @@ const BookPage={
     $('p-book').addEventListener('click',e=>{
       const c=e.target.closest&&e.target.closest('[data-cancel]');
       if(c){if(Book.cancel(c.dataset.cancel)){toast('Đã hủy lệnh chờ. Bạn có thể đặt lại ở Bảng tín hiệu.','up');Sig.render()}return}
+      const k=e.target.closest&&e.target.closest('[data-cut]');
+      if(k){const o=Book.byId(k.dataset.cut),lv=o&&Book.live(o);if(!o)return;
+        if(!lv){toast('Chưa có giá hiện tại, thử lại sau vài giây.','dn');return}
+        if(confirm(`Cắt lệnh ${Fmt.coin(o.s)} ${o.side} theo giá thị trường ${Fmt.px(lv.px)}?\nLãi/lỗ tạm tính: ${Fmt.sgn(lv.pnl)}${o.st==='H'?' (gồm 50% đã chốt ở TP1)':''}.\nHãy đóng vị thế này trên sàn cùng lúc.`)){
+          if(Book.cut(o.id))Sig.render()}return}
       const f=e.target.closest&&e.target.closest('[data-flt]');if(f){this.flt=f.dataset.flt;this.render();return}
       const ch=e.target.closest&&e.target.closest('[data-chart]');if(ch){ChartView.order(ch.dataset.chart);return}
       if(e.target.closest('a,button,th'))return;
@@ -34,11 +39,12 @@ const BookPage={
     const be=h1; // đã chạm TP1: chốt 50% và dời cắt lỗ về giá vào
     let note='';
     if(be){const{a,b}=this.halves(z,r),half=v=>v==null?'đang chạy':Fmt.sgn(v);
-      note=`<div class="trn"><span class="c1">✓ Chốt 50% tại TP1 <b>${Fmt.sgn(a)}</b></span><span class="c2">SL dời về Entry</span><span class="c3">50% còn lại: ${h2?`chốt TP2 <b>${half(b)}</b>`:z.st==='B'?`đóng ở Entry <b>${half(b)}</b>`:z.st==='E'?`cắt sớm <b>${half(b)}</b>`:(live?`→ TP2 <b data-live="h2:${z.id}">…</b>`:`→ TP2 <b class="${b>=0?'up':'dn'}">${half(b)}</b>`)}</span></div>`}
+      note=`<div class="trn"><span class="c1">✓ Chốt 50% tại TP1 <b>${Fmt.sgn(a)}</b></span><span class="c2">SL dời về Entry</span><span class="c3">50% còn lại: ${h2?`chốt TP2 <b>${half(b)}</b>`:z.st==='B'?`đóng ở Entry <b>${half(b)}</b>`:z.st==='E'?`cắt sớm <b>${half(b)}</b>`:z.st==='M'?`bạn cắt tay <b>${half(b)}</b>`:(live?`→ TP2 <b data-live="h2:${z.id}">…</b>`:`→ TP2 <b class="${b>=0?'up':'dn'}">${half(b)}</b>`)}</span></div>`}
     return`<div class="trw${h2?' h2':h1?' h1':sl?' hsl':''}${be?' be':''}" style="--e:${P(0)};--t1:${P(t1)};--p:${r==null?P(0):P(r)}"${live?` data-live="rl:${z.id}"`:''}>
       <div class="trk"><i class="fill"></i>${be?'<b class="n slx" title="Cắt lỗ cũ"></b><b class="n sl mv" title="Cắt lỗ đã dời về giá vào"><i class="hbe">SL</i></b>':`<b class="n sl${sl?' on':''}"></b>`}<b class="n en"></b><b class="n t1${h1?' on':''}">${be?'<i class="h50">50%</i>':''}</b><b class="n t2${h2?' on':''}"></b>${r!=null||live?'<em class="mk"></em>':''}</div>
       <div class="trl">${be?'<span class="l0 old">SL cũ</span>':`<span class="l0">SL${sl?' ✗':''}</span>`}<span class="l1">TP1${h1?' ✓':''}</span><span class="l2">TP2${h2?' ✓':''}</span></div>${note}</div>`},
   goal(z){const{h1,h2,sl}=this.hits(z);
+    if(z.st==='M')return h1?'<span class="gl g1">✓ TP1 chốt 50% · 50% còn lại bạn cắt tay</span>':'<span class="gl ge">✋ Bạn cắt lệnh trước TP1</span>';
     return h2?'<span class="gl g2">🏆 TP1 chốt 50% → TP2 chốt 50% còn lại</span>':h1&&z.st==='B'?'<span class="gl g1">✓ TP1 chốt 50% · 50% còn lại đóng ở Entry</span>':h1&&z.st==='E'?'<span class="gl g1">✓ TP1 chốt 50% · 50% còn lại cắt sớm</span>':h1?'<span class="gl g1">✓ TP1 chốt 50% · SL dời về Entry</span>':sl?'<span class="gl gs">✗ Chạm cắt lỗ</span>':z.st==='E'?'<span class="gl ge">✂ Cắt sớm trước TP1</span>':''},
   bal:z=>z.bal||UI.bal()||1,
   liveTotal(){
@@ -52,15 +58,15 @@ const BookPage={
     const T=(k,v,fmt,sub,c)=>{const e=$('t-'+k);tween(e,v,fmt);e.className=c||'';$('t-'+k+'2').textContent=sub};
     T('amt',S.amt,Fmt.usd,`${S.n-S.cn} lệnh đã vào · đang giữ $${Book.marginUsed().toFixed(2)} / $${bal} vốn`);
     T('n',S.n,v=>Math.round(v),`${S.op} mở, ${S.cl} đóng, ${S.cn} bỏ/hết hạn`);
-    T('gain',S.gain,v=>v>0?Fmt.sgn(v):'$0.00',`${S.w} lệnh thắng (đạt TP1)`,'up');
+    T('gain',S.gain,v=>v>0?Fmt.sgn(v):'$0.00',`${S.w} lệnh đã đóng thắng${S.npart?` + ${S.npart} lệnh đã chốt 50% ở TP1`:''}`,'up');
     T('loss',S.loss,v=>v<0?Fmt.sgn(v):'$0.00',`${S.l} lệnh thua`,'dn');
-    T('net',S.net,Fmt.sgn,`${bal?(S.net/bal*100).toFixed(2):0}% vốn, thắng ${S.rate.toFixed(0)}%`,S.net>=0?'up':'dn');
+    T('net',S.net,Fmt.sgn,`${bal?(S.net/bal*100).toFixed(2):0}% vốn, thắng ${S.rate.toFixed(0)}%${S.npart?` · gồm ${Fmt.sgn(S.part)} đã chốt 50% ở TP1 của ${S.npart} lệnh đang chạy`:''}`,S.net>=0?'up':'dn');
     this.liveTotal();
     const done=o.filter(Book.isDone).sort((a,b)=>(a.x||0)-(b.x||0));
     let c=0;put($('pnlc'),done.length?lineChart([0,...done.map(z=>c+=z.pnl)]):'<div class="empty">Biểu đồ lãi/lỗ lũy kế sẽ hiện khi có lệnh đóng.</div>');
     $('pcv').textContent=Fmt.sgn(S.net);$('pcv').className=S.net>=0?'up':'dn';
     const riskCell=z=>{const r=Book.riskNow(z),p=r/B.bal(z)*100;return z.st==='H'?'<span class="chip up">0% · đã về entry</span>':`<span class="chip ${p>10?'dn':''}">${p.toFixed(2)}%</span><span class="sub">−$${r.toFixed(2)}</span>`};
-    const levCell=z=>`<b>${z.lev||1}×</b>`,mgCell=z=>`${Fmt.usd(z.amt)}<span class="sub">vị thế $${B.N(z).toFixed(0)}</span>`,liqCell=z=>z.liq?Fmt.px(z.liq):'-';
+    const levCell=z=>`<b>${z.lev||1}×</b>`,mgCell=z=>z.st==='H'?`${Fmt.usd(z.amt*0.5)}<span class="sub">còn 50% · vị thế $${(B.N(z)*0.5).toFixed(0)}</span>`:`${Fmt.usd(z.amt)}<span class="sub">vị thế $${B.N(z).toFixed(0)}</span>`,liqCell=z=>z.liq?Fmt.px(z.liq):'-';
     // ---- Lệnh chờ khớp ----
     const pend=o.filter(z=>z.st==='P'),left=z=>Math.max(0,(z.P.W||3)-Math.floor((Date.now()-z.sigT-ms(z))/ms(z)));
     $('np').textContent=pend.length;
@@ -99,8 +105,9 @@ const BookPage={
       {k:'risk',h:'% rủi ro vốn',v:z=>Book.riskNow(z),f:riskCell},
       {k:'liq',h:'Thanh lý ≈',v:z=>z.liq||0,f:liqCell},
       {k:'pc',h:'Lãi/Lỗ % (ký quỹ)',v:z=>lv(z)?lv(z).pct:0,f:z=>`<span class="chip" data-live="pc:${z.id}">-</span><span class="sub" data-live="pb:${z.id}"></span>`},
-      {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>lv(z)?lv(z).pnl:0,f:z=>`<span class="chip" data-live="pm:${z.id}">-</span>`},
-      {k:'st',h:'Trạng thái',v:z=>ST[z.st],f:z=>`<span class="st ${z.st}">${ST[z.st]}</span>${z.st==='H'?'<span class="wl w" style="margin-top:4px">ĐÃ TÍNH THẮNG</span>':''}${z.mkt?'<span class="sub">vào theo giá thị trường</span>':''}`}
+      {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>lv(z)?lv(z).pnl:0,f:z=>`<span class="chip" data-live="pm:${z.id}">-</span>${z.st==='H'?`<span class="sub up">đã chốt ${Fmt.sgn(Book.realized(z))}</span><span class="sub">50% còn lại: <b data-live="h2:${z.id}">…</b></span>`:''}`},
+      {k:'st',h:'Trạng thái',v:z=>ST[z.st],f:z=>`<span class="st ${z.st}">${ST[z.st]}</span>${z.st==='H'?'<span class="wl w" style="margin-top:4px">ĐÃ TÍNH THẮNG</span>':''}${z.mkt?'<span class="sub">vào theo giá thị trường</span>':''}`},
+      {k:'act',h:'Thao tác',f:z=>`<button class="bx dn" data-cut="${z.id}" title="Đóng lệnh ngay theo giá thị trường">✋ Cắt lệnh</button>`}
     ],fill,{def:{k:'ft',d:-1},attr:z=>` data-oid="${z.id}" class="clk${z.st==='H'?' tp1':''}" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Chưa có lệnh nào khớp.</div>'});
     // ---- Lịch sử đã đóng: lọc theo kết quả ----
     const all=o.filter(z=>!Book.isOpen(z)),nc=all.filter(Book.isDone).length,nx=all.filter(Book.isCancel).length;
@@ -118,7 +125,7 @@ const BookPage={
       {k:'lev',h:'Đòn bẩy',v:z=>z.lev||1,f:levCell},
       {k:'entry',h:'Giá vào',v:z=>z.entry,f:z=>Fmt.px(z.entry)},
       {k:'exit',h:'Giá thoát',v:z=>z.exit||0,f:z=>z.exit!=null?Fmt.px(z.exit):'-'},
-      {k:'win',h:'Thắng / Thua',v:z=>dn(z)?(z.win?1:0):-1,f:z=>dn(z)?(H(z).h1?'<span class="wl w">THẮNG</span><span class="sub">đã chạm TP1</span>':'<span class="wl l">THUA</span><span class="sub">chưa chạm TP1</span>'):'-'},
+      {k:'win',h:'Thắng / Thua',v:z=>dn(z)?(z.win?1:0):-1,f:z=>dn(z)?(H(z).h1?'<span class="wl w">THẮNG</span><span class="sub">đã chạm TP1</span>':`<span class="wl l">THUA</span><span class="sub">${z.st==='M'?'cắt tay trước TP1 · không tính vào chiến lược':'chưa chạm TP1'}</span>`):'-'},
       {k:'st',h:'Kết quả',v:z=>ST[z.st],f:z=>`${this.goal(z)||`<span class="st ${z.st}">${ST[z.st]}</span>`}${z.why&&z.st!=='S'?`<span class="sub">${esc(z.why)}</span>`:''}`},
       {k:'prog',h:'Mốc đã chạm',v:z=>(H(z).h2?3:H(z).h1?2:H(z).sl?0:1),f:z=>dn(z)?this.rail(z,false):'-'},
       {k:'rr',h:'R',v:z=>dn(z)?z.rr:0,f:z=>dn(z)?`${z.rr>=0?'+':''}${z.rr.toFixed(2)}R`:'-'},

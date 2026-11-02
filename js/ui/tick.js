@@ -1,6 +1,6 @@
 /* Cập nhật giá và lãi/lỗ realtime mỗi 3 giây (không vẽ lại bảng, chỉ đổi chữ tại chỗ) + dải giá chạy ngang đầu trang */
 const Tick={
-  async run(){await Data.prices();Data.stats24();this.paint();NetBar.paint()},
+  async run(){await Data.prices();Data.stats24();if(Book.liveTick())Sig.render();this.paint();NetBar.paint()},
   paint(){
     document.querySelectorAll('[data-live]').forEach(el=>{
       const v=el.dataset.live,i=v.indexOf(':'),k=v.slice(0,i),id=v.slice(i+1);
