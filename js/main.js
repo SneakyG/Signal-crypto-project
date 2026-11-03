@@ -7,7 +7,7 @@
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
     scrollTo(0,0);pages[b.dataset.p]()});
   $('alert').onclick=()=>{Notify.enable();$('alert').textContent='Cảnh báo đang bật'};
-  TG.init();Sig.init();BookPage.init();Ana.init();NewsPage.init();Lab.init();Settings.init();
+  TG.init();Sig.init();BookPage.init();Ana.init();NewsPage.init();Lab.init();Settings.init();Sync.init();
   Sig.render();Lab.render();NewsPage.load();
   document.addEventListener('keydown',e=>{ // phím tắt 1–6 để chuyển trang
     if(e.target.closest&&e.target.closest('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;

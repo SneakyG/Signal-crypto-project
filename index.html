@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Tín hiệu - Bảng giao dịch</title>
 <meta name="theme-color" content="#08121f">
 <meta name="description" content="Bảng tín hiệu crypto realtime: đa khung 1D/4h, SMC/ICT, sổ lệnh và backtest.">
@@ -16,12 +16,12 @@
 <header class="bar">
   <div class="brand"><span class="logo"></span><span>Tín hiệu</span></div>
   <nav id="nav">
-    <button data-p="main" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Bảng tín hiệu</span></button>
-    <button data-p="book"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11"/></svg><span>Sổ lệnh</span><i id="nb"></i></button>
-    <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Phân tích</span></button>
-    <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span><i id="nn"></i></button>
-    <button data-p="lab"><svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg><span>Chiến lược</span></button>
-    <button data-p="set"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Cài đặt</span></button>
+    <button data-p="main" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Bảng tín hiệu</span><em class="sl">Tín hiệu</em></button>
+    <button data-p="book"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11"/></svg><span>Sổ lệnh</span><em class="sl">Sổ lệnh</em><i id="nb"></i></button>
+    <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Phân tích</span><em class="sl">Phân tích</em></button>
+    <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span><em class="sl">Tin tức</em><i id="nn"></i></button>
+    <button data-p="lab"><svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg><span>Chiến lược</span><em class="sl">Chiến lược</em></button>
+    <button data-p="set"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Cài đặt</span><em class="sl">Cài đặt</em></button>
   </nav>
   <div class="live"><div class="lt"><span class="dot" id="st"></span><span>Cập nhật <b id="upd">chưa có</b></span></div><button class="ghost" id="alert">Bật cảnh báo</button></div>
 </header>
@@ -40,7 +40,7 @@
     <label>Số lệnh tối đa<select id="slots"><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option></select></label>
     <label>Số coin theo dõi<select id="topk"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option selected>10</option></select></label>
   </div>
-  <div class="scanbar"><div class="sb" id="sb"><i id="sbar"></i></div><span class="mut" id="stext">Chưa quét</span><button class="ghost bx" id="rescan">Quét lại</button></div>
+  <div class="scanbar"><div class="sb" id="sb"><i id="sbar"></i></div><span class="mut" id="stext">Chưa quét</span><button class="ghost bx" id="rescan">Quét lại</button><label class="sw auto" title="Coin nào hiện nút Đặt lệnh sẽ tự được ghi vào Sổ lệnh với số tiền gợi ý. Không gửi lệnh lên sàn."><input type="checkbox" id="autoon"><span></span>Tự động đặt lệnh</label></div>
   <div class="kpis">
     <div class="kpi"><i>Thua mỗi lệnh</i><b id="k-risk">-</b><small id="k-risk2"></small></div>
     <div class="kpi"><i>Ký quỹ mỗi lệnh (ước tính)</i><b id="k-per">-</b><small id="k-per2"></small></div>
@@ -151,9 +151,9 @@
   <section class="panel flow">
     <div class="steps">
       <div class="stp"><b>1</b><div><h3>Dùng và ghi kết quả</h3><p>Mỗi lệnh kết thúc (lệnh bạn đặt hoặc tín hiệu bảng đang theo dõi) được ghi vào phiên bản đã tạo ra nó.</p></div></div>
-      <div class="stp"><b>2</b><div><h3>Đủ 10 lệnh thì đánh giá</h3><p>Thắng ≥ 7/10: giữ nguyên. Thắng &lt; 7/10: tự học lại từ các lệnh thua.</p></div></div>
-      <div class="stp"><b>3</b><div><h3>Đạt 70% → lưu và học tiếp</h3><p>10 lệnh kiểm chứng thắng ≥ 7: lưu bản ✓70% rồi nhân bản học tiếp.</p></div></div>
-      <div class="stp"><b>4</b><div><h3>Đạt 90% → bản dự phòng</h3><p>Thắng ≥ 9/10: lưu bản ★90%. Cả ✓70% và ★90% chọn được ở Bảng tín hiệu.</p></div></div>
+      <div class="stp"><b>2</b><div><h3>Đủ 100 lệnh thì đánh giá</h3><p>Thắng ≥ 70/100: giữ nguyên. Thắng &lt; 70/100: tự học lại từ các lệnh thua.</p></div></div>
+      <div class="stp"><b>3</b><div><h3>Đạt 70% → lưu và học tiếp</h3><p>100 lệnh kiểm chứng thắng ≥ 70: lưu bản ✓70% rồi nhân bản học tiếp.</p></div></div>
+      <div class="stp"><b>4</b><div><h3>Đạt 90% → bản dự phòng</h3><p>Thắng ≥ 90/100: lưu bản ★90%. Cả ✓70% và ★90% chọn được ở Bảng tín hiệu.</p></div></div>
     </div>
     <div class="row2" style="margin-top:12px"><label class="sw"><input type="checkbox" id="alon"><span></span>Tự học tự động</label><span class="mut" id="alst"></span><button class="ghost bx" id="alreset" style="margin-left:auto" title="Xóa kết quả đã ghi của mọi phiên bản, đếm lại từ 0/10">Đặt lại đếm thắng/thua (tất cả)</button></div>
   </section>
@@ -170,7 +170,7 @@
   </details>
   <section class="panel">
     <h2>Mô tả chi tiết các chiến lược</h2>
-    <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 4 ATR, TP1 0,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 1R, thoát sớm khi giá hồi về SMA5 có lãi. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 02/11/2026): 1.106 lệnh, thắng 73,5%, nhưng lãi kỳ vọng −0,02R/lệnh sau phí, tức gần hòa vốn. Tỉ lệ thắng cao vì TP1 nhỏ; một lệnh thua bằng khoảng hai lệnh thắng.</p>
+    <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 03/11/2026): 598 lệnh, thắng (chạm TP1) 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn).</p>
     <p class="note"><b>BTC x100 · SMC/ICT hợp lưu:</b> chỉ BTC, khung 15m, đòn bẩy cố định x100. 1D/4h cho hướng. Chờ <b>quét thanh khoản</b> (đáy/đỉnh cũ, đáy/đỉnh ngày hôm trước, đáy/đỉnh phiên Á) → <b>phá cấu trúc có lực (MSS)</b> → đặt lệnh chờ ở <b>giữa FVG/OB</b> của nhịp phá. Cộng điểm khi có vùng Discount/Premium 4h, OTE 62–79%, kill zone London (14–17h VN) / New York (19–23h VN), <b>SMT phân kỳ với ETH</b> và volume nhịp phá. Cắt lỗ ngoài cú quét, tối đa 0,45% vì thanh lý x100 chỉ cách ≈ 0,6%. TP1 1,5R chốt 50%, dời cắt lỗ về giá vào, TP2 3R chốt hết. Vẫn giữ 1 lệnh thua = % vốn đã chọn.</p>
     <p class="note"><b>SMC / ICT:</b> 1D/4h cho hướng. Khung nhỏ tìm Order Block và Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt giữa vùng, cắt lỗ ngoài vùng.</p>
   </section>
@@ -187,6 +187,28 @@
       <button id="tgid">Lấy Chat ID</button><button class="ghost" id="tgtest">Gửi thử</button>
     </div>
     <p class="note" id="tgm">Tạo bot: nhắn @BotFather lệnh /newbot rồi chép token vào đây. Sau đó nhắn một tin bất kỳ cho bot, bấm Lấy Chat ID, rồi Gửi thử. Token chỉ lưu trong trình duyệt của bạn. Cảnh báo chỉ gửi khi trang này đang mở. Bảng gửi: tín hiệu mới, lệnh khớp, đạt TP1, đóng lệnh, <b>cắt lệnh sớm</b> và bỏ lệnh.</p>
+  </section>
+  <section class="panel">
+    <h2>Đồng bộ máy tính ↔ điện thoại</h2>
+    <p class="note">Sổ lệnh, thắng/thua, lãi lỗ, chiến lược đã học và thiết lập được lưu chung trong một <b>GitHub Gist bí mật</b> của bạn, cập nhật mỗi 20 giây.
+      Cách lấy mã: GitHub → Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token, chỉ tích quyền <b>gist</b>, chọn thời hạn. Dán cùng một mã trên mọi thiết bị.</p>
+    <div class="ctl">
+      <label>Mã GitHub (quyền gist)<input id="syntok" type="password" autocomplete="off" style="width:300px" placeholder="ghp_…"></label>
+      <button id="synsave">Kết nối</button><button class="ghost" id="synnow">Đồng bộ ngay</button><button class="ghost" id="synoff">Tắt</button>
+    </div>
+    <div class="row2" style="margin-top:10px"><label class="sw"><input type="checkbox" id="synmain"><span></span>Máy chính</label>
+      <span class="mut">Chỉ máy chính tự đặt lệnh, tự học và gửi Telegram. Nên chọn máy hay để trang mở nhất. Các máy khác vẫn xem, đặt tay, cắt và hủy lệnh.</span></div>
+    <p class="note" id="synst"></p>
+  </section>
+  <section class="panel">
+    <h2>Chốt lời (TP1 / TP2)</h2>
+    <p class="note">Áp dụng cho mọi chiến lược và phiên bản. R = khoảng cách từ giá vào tới cắt lỗ.</p>
+    <div class="ctl">
+      <label>TP1<select id="stp1"><option value="1">1R</option><option value="1.5">1,5R</option><option value="2">2R</option></select></label>
+      <label>TP2<select id="stp2"><option value="auto">Tự chọn 3–4R theo coin</option><option value="3">3R</option><option value="3.5">3,5R</option><option value="4">4R</option></select></label>
+      <button id="tpsave">Lưu và tính lại</button>
+    </div>
+    <p class="note" id="tpn"></p>
   </section>
   <section class="panel">
     <h2>Tin tức (tuỳ chọn)</h2>
@@ -221,6 +243,7 @@
 <script src="js/learning/learner.js"></script>
 <script src="js/learning/autolab.js"></script>
 <script src="js/services/telegram.js"></script>
+<script src="js/services/sync.js"></script>
 <script src="js/services/notify.js"></script>
 <script src="js/services/xlsx.js"></script>
 <script src="js/services/news.js"></script>

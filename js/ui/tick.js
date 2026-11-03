@@ -6,8 +6,9 @@ const Tick={
       const v=el.dataset.live,i=v.indexOf(':'),k=v.slice(0,i),id=v.slice(i+1);
       if(k==='p'){
         const p=Data.px[id];if(p==null)return;const t=Fmt.px(p),lp=el._p;el._p=p;
-        if(el.textContent!==t){el.textContent=t;if(lp!=null&&lp!==p){el.classList.remove('fu','fd');void el.offsetWidth;el.classList.add(p>lp?'fu':'fd')}}
+        if(el.textContent!==t){el.textContent=t;if(lp!=null&&lp!==p){el.classList.remove('fu','fd');void el.offsetWidth;el.classList.add(p>lp?'fu':'fd');el.dataset.tr=p>lp?'u':'d'}}
         return}
+      if(k==='rr'){const o=Book.byId(id),l=o&&Book.live(o);if(!l)return;const r=l.rr,t=`${r>=0?'+':'−'}${Math.abs(r).toFixed(2)}R`;if(el.textContent!==t){el.textContent=t;el.className='rtag '+(r>0?'up':r<0?'dn':'')}return}
       if(k==='g'){const o=Book.byId(id);if(!o||Data.px[o.s]==null)return;const t=Fmt.pct((Data.px[o.s]-o.entry)/o.entry*100);if(el.textContent!==t)el.textContent=t;return}
       if(k==='h2'){const o=Book.byId(id);if(!o||Data.px[o.s]==null)return;const v=BookPage.halves(o,BookPage.pos(o,Data.px[o.s])).b;el.textContent=Fmt.sgn(v);el.className=v>=0?'up':'dn';return}
       if(k==='rl'){const o=Book.byId(id);if(!o||Data.px[o.s]==null)return;const r=BookPage.pos(o,Data.px[o.s]);el.style.setProperty('--p',BookPage.pct(o,r).toFixed(1)+'%');el.classList.toggle('neg',r<0);return}

@@ -1,15 +1,16 @@
 /* Hồi quy RSI(2) Connors theo xu hướng đa khung — thay cho chiến lược EMA cũ.
    Nguồn: Larry Connors, "Short Term Trading Strategies That Work": mua khi RSI(2) rất thấp trong xu hướng tăng (giá trên SMA200),
    bán khi giá hồi lên trên SMA5. Bản này thêm hướng từ 1D/4h, giá vào hồi thêm 0,5 ATR, cắt lỗ rộng 4 ATR.
-   Kiểm chứng trên dữ liệu thật Binance Futures (13 coin lớn, khung 1h, ~208 ngày tới 02/11/2026):
-     1.106 lệnh, thắng 73,5% (đạt TP1 0,5R), lãi kỳ vọng −0,02R/lệnh sau phí 0,05% mỗi chiều (gần hòa vốn).
-   Tỉ lệ thắng cao vì TP1 nhỏ (0,5R) và cắt lỗ rộng; đổi lại một lệnh thua bằng khoảng 2 lệnh thắng. */
+   Từ 03/11/2026: TP1 1,5R / TP2 3–4R theo yêu cầu, cắt lỗ 3 ATR. Thoát ở SMA5 CHỈ áp dụng cho phần còn lại sau TP1
+   (trước đây thoát SMA5 cả khi chưa tới TP1 nên lệnh có lãi nhỏ vẫn bị tính THUA).
+   Kiểm chứng trên dữ liệu thật Binance Futures (13 coin lớn, khung 1h, ~208 ngày tới 03/11/2026):
+     598 lệnh, thắng (chạm TP1 1,5R) 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn). */
 Strat.impl.rsi2={
   short:'RSI(2) Connors',
   name:'Hồi quy RSI(2) Connors đa khung (1D/4h → 1h)',
   tf:'1h',
-  desc:'Hướng từ 1D/4h. Khung 1h: giá trên SMA200 và RSI(2) dưới 10 thì đặt lệnh mua chờ hồi thêm 0,5 ATR (ngược lại cho bán). Cắt lỗ 4 ATR, TP1 0,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 1R; thoát sớm khi giá hồi về SMA5 có lãi.',
-  defaults:{rl:10,k:4,pb:0.5,tp1R:0.5,tp2R:1,W:3,maxHold:48,hold:48,needD1:false},
+  desc:'Hướng từ 1D/4h. Khung 1h: giá trên SMA200 và RSI(2) dưới 10 thì đặt lệnh mua chờ hồi thêm 0,5 ATR (ngược lại cho bán). Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5.',
+  defaults:{rl:10,k:3,pb:0.5,tp1R:1.5,tp2R:3,W:3,maxHold:48,hold:48,needD1:false},
   labels:['Xu hướng 4h/1D','Giá cùng phía SMA200 (1h)','RSI(2) quá bán / quá mua'],
   ind(D){
     const n=D.c.length,stamp=n+':'+D.t[n-1]+':'+D.c[n-1];
@@ -32,9 +33,9 @@ Strat.impl.rsi2={
   exit(D,j,pos,P){
     const X=this.ind(D),dir=pos.dir,c=D.c[j];
     if(D.bias[j]===-dir)return'Xu hướng khung lớn 4h/1D đã đảo chiều ngược lệnh';
-    if((dir>0?c>X.s5[j]:c<X.s5[j])&&dir*(c-pos.entry)>0)return'Giá đã hồi về SMA5 (mục tiêu hồi quy), chốt lời';
+    if(pos.tp1Hit&&(dir>0?c>X.s5[j]:c<X.s5[j])&&dir*(c-pos.entry)>0)return'Đã qua TP1 và giá hồi về SMA5 (mục tiêu hồi quy), chốt phần còn lại';
     return null},
-  tunables:[{k:'k',steps:[4,5],tag:'stopped'},{k:'rl',steps:[10,5],tag:'weak'},{k:'needD1',steps:[false,true],tag:'counter1D'},{k:'pb',steps:[0.5,1],tag:'shallow'}],
+  tunables:[{k:'k',steps:[3,4,5],tag:'stopped'},{k:'rl',steps:[10,5],tag:'weak'},{k:'needD1',steps:[false,true],tag:'counter1D'},{k:'pb',steps:[0.5,1],tag:'shallow'}],
   tagText:{stopped:'cắt lỗ bị quét',weak:'RSI(2) chưa đủ cực đoan',counter1D:'1D chưa đồng thuận',shallow:'giá vào chưa đủ sâu'},
   tags(f){const t=['stopped'];if(f.rsi>5&&f.rsi<95)t.push('weak');if(!f.b1ok)t.push('counter1D');return t}
 };

@@ -17,7 +17,7 @@ const Book={
   roll(){
     if(this.data.day===Fmt.day())return;
     const done=this.data.orders.filter(o=>!Book.isOpen(o));if(done.length)this.prev={day:this.data.day,orders:done};
-    this.data={day:Fmt.day(),orders:this.data.orders.filter(Book.isOpen),log:[]};this.save()},
+    this.data={day:Fmt.day(),orders:this.data.orders.filter(Book.isOpen),log:[],wipe:this.data.wipe||0};this.save()},
   add(o){this.data.orders.push(o);this.log('place',`Đặt lệnh ${o.side} ${Fmt.coin(o.s)}: ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} = vị thế $${(o.notional||o.amt).toFixed(0)}`);this.save()},
   cancel(id){
     const o=this.byId(id);if(!o||o.st!=='P')return false;
@@ -32,6 +32,8 @@ const Book={
     if(!Book.isOpen(o))return 0;const N=o.notional||o.amt;
     return o.st==='H'?N*2*FEE/100*0.5:N*(Math.abs(o.entry-o.sl)/o.entry+2*FEE/100)},
   lev(o){return o.lev||1},
+  // Hiệu lực lệnh chờ (số nến): lấy mức ngắn hơn giữa lúc đặt và phiên bản chiến lược hiện tại (lệnh cũ đặt khi SMC còn 12 nến sẽ theo mức 6 mới)
+  effW(o){const v=Strat.byId(o.strat&&o.strat.id),a=(o.P&&o.P.W)||3,b=v&&v.params.W;return b?Math.min(a,b):a},
   // Ký quỹ đang giữ bởi mọi lệnh mở (lệnh chờ khớp cũng giữ ký quỹ trên sàn)
   marginUsed(){return this.data.orders.filter(Book.isOpen).reduce((a,o)=>a+(o.amt||0)*(o.st==='H'?0.5:1),0)},
   // Lãi đã chốt ở TP1 (50% vị thế) của lệnh đang chạy, đã trừ phần phí tương ứng
@@ -51,7 +53,7 @@ const Book={
       const key=o.s+'|'+o.tf;let D=cur[key];
       if(!D){try{D=cur[key]=await Sig.series(o.s,o.tf)}catch(e){continue}}
       const i=D.t.indexOf(o.sigT);if(i<0)continue;
-      const L=Life.run(D,i,{dirN:o.dir,entry:o.entry,sl:o.sl,tp1:o.tp1,tp2:o.tp2,R:o.R,mkt:o.mkt},Strat.impl[o.strat.base],o.P);
+      const L=Life.run(D,i,{dirN:o.dir,entry:o.entry,sl:o.sl,tp1:o.tp1,tp2:o.tp2,R:o.R,mkt:o.mkt},Strat.impl[o.strat.base],{...o.P,W:this.effW(o)});
       this.apply(o,L,D)}
     this.save()},
   apply(o,L,D){
@@ -89,6 +91,10 @@ const Book={
     for(const o of this.data.orders.filter(Book.isOpen)){
       const p=Data.px[o.s];if(p==null||!(o.R>0))continue;const d=o.dir,name=`${Fmt.coin(o.s)} ${o.side}`,t1=o.tp1R||1.5,t2=o.tp2R||3;
       const past=lv=>d>0?p>=lv:p<=lv,below=lv=>d>0?p<=lv:p>=lv;
+      if(o.st==='P'){const ms=Data.MS[o.tf],W=this.effW(o),left=W-Math.floor((now-o.sigT-ms)/ms);
+        let why=past(o.tp2)?'Giá đã chạy qua TP2 khi chưa khớp (lỡ nhịp)':(o.mkt?null:(!(Strat.impl[o.strat.base]||{}).valid&&past(o.tp1)?'Giá đã chạy qua TP1 khi chưa khớp':left<=0&&!below(o.entry)?`Quá ${W} nến chưa khớp`:null));
+        if(why){o.st=why.startsWith('Quá')?'X':'C';o.x=now;o.why=why;o.pnl=0;ch=true;
+          Notify.push('cancel',`Lệnh chờ <b>${name}</b> bị bỏ: ${why}`,`❌ BỎ LỆNH CHỜ ${name} (${o.tf})\nLý do: ${why}. Hãy hủy lệnh limit ${Fmt.px(o.entry)} trên sàn nếu còn treo.`,'dn');continue}}
       if(o.st==='P'&&below(o.entry)){o.st='F';o.fillT=now;ch=true;
         Notify.push('fill',`Lệnh chờ <b>${name}</b> đã khớp tại ${Fmt.px(o.entry)}`,`✅ LỆNH CHỜ ĐÃ KHỚP ${name} (${o.tf})\nGiá vào ${Fmt.px(o.entry)}. Cắt lỗ ${Fmt.px(o.sl)}, TP1 ${Fmt.px(o.tp1)}, TP2 ${Fmt.px(o.tp2)}.`,'up');continue}
       if(o.st==='F'){

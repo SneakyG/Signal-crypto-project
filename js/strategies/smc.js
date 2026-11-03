@@ -4,7 +4,7 @@ Strat.impl.smc={
   short:'SMC / ICT',
   name:'SMC / ICT (cấu trúc, Order Block, FVG, thanh khoản)',
   desc:'Khung 1D/4h xác định hướng. Khung nhỏ tìm Order Block / Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt tại giữa vùng, cắt lỗ ngoài vùng.',
-  defaults:{k:3,fvgMin:0.25,maxAge:60,maxDist:3,minScore:4,zone:'any',entry:'mid',slBuf:0.25,minR:0.8,maxR:3,needSweep:false,needDisc:false,session:0,sweepAge:30,tp1R:1.5,tp2R:3,hold:12,W:12,maxHold:48},
+  defaults:{k:3,fvgMin:0.25,maxAge:60,maxDist:3,minScore:4,zone:'any',entry:'mid',slBuf:0.25,minR:0.8,maxR:3,needSweep:false,needDisc:false,session:0,sweepAge:30,tp1R:1.5,tp2R:3,hold:12,W:6,maxHold:48},
   labels:['Xu hướng 4h/1D','Cấu trúc khung nhỏ (BOS/CHoCH)','Vùng OB/FVG chưa chạm','Đúng vùng Discount/Premium','Có quét thanh khoản'],
   inKZ(t){const h=new Date(t).getUTCHours();return(h>=7&&h<10)||(h>=12&&h<16)}, // London 7-10h, New York 12-16h (UTC)
   // Tính một lần: pivot, cấu trúc, vùng OB/FVG, quét thanh khoản. Mọi thứ chỉ dựa vào nến đã biết tại thời điểm đó.
@@ -61,6 +61,7 @@ Strat.impl.smc={
     if(!ses)return{...base,side:'CHỜ',gate:'Bộ học đã giới hạn chỉ vào lệnh trong giờ London (14–17h VN) và New York (19–23h VN)'};
     let sl=lg?z.lo-P.slBuf*A:z.hi+P.slBuf*A,R=Math.abs(entry-sl);
     if(R<P.minR*A){R=P.minR*A;sl=entry-dirN*R}
+    if(lg?c>=entry+P.tp1R*R:c<=entry-P.tp1R*R)return{...base,side:'CHỜ',gate:'Giá đã đi quá TP1 so với vùng vào lệnh: chờ vùng mới gần giá hơn'};
     if(R>P.maxR*A)return{...base,side:'CHỜ',gate:`Vùng ${z.type} quá rộng: cắt lỗ cần ${(R/A).toFixed(1)} ATR, vượt giới hạn ${P.maxR} ATR`};
     return{...base,side:lg?'LONG':'SHORT',entry,R,sl,tp1:entry+dirN*P.tp1R*R,tp2:entry+dirN*P.tp2R*R,
       feat:{zoneType:z.type,disc,sweep,dist:z.d/A,age:i-z.born,hour:new Date(D.t[i]).getUTCHours(),vr:D.v[i]/(I.vol[i]||1)}}},

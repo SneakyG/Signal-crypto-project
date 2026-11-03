@@ -59,7 +59,7 @@ const Sig={
           cur[s+'|'+tf]=D;
           this.state[s]={tf,D,v,P,calib,an,tr:this.track(D,impl,P),price:Data.px[s]||D.c[D.c.length-1],spark:D.c.slice(-49,-1),n:D.c.length-1,ok:true}
         }catch(e){this.state[s]={ok:false,err:e.message}}}));
-      this.events(tf);await Book.sync(cur);this.render();
+      this.events(tf);await Book.sync(cur);this.autoPlace();this.render();
       $('st').className='dot on';$('upd').textContent=new Date().toLocaleTimeString('vi-VN')
     }finally{this.busy=false}},
   // Báo khi tín hiệu của các coin đang theo dõi xuất hiện, khớp hoặc bị bỏ (kể cả khi bạn chưa đặt lệnh)
@@ -111,7 +111,7 @@ const Sig={
     const r=Scan.res[s],bt=r&&r.n!=null&&r.strat===x.v.id?`Backtest ${r.placed} lệnh chờ, khớp ${r.n}: thắng ${r.win.toFixed(0)}% (cận dưới ${r.wil.toFixed(0)}%), ${r.avg>=0?'+':''}${r.avg.toFixed(2)}R mỗi lệnh khớp`:'Đang quét backtest…';
     const tpl=`<article class="card ${sig.side} ${cls}">
       <div class="top"><b>${coinLink(s,x.tf)}</b><small>/USDT</small>${spark(x.spark,up?'up':'dn',100,30)}<span class="px" data-live="p:${s}">%PX%</span></div>
-      <div class="pills">${pill(sig.side,sig.side)}${pill(ST[L.st],cls)}${this.meter(sig)}<span class="mut">${sig.score}/${sig.checks.length}</span></div>
+      <div class="pills">${pill(sig.side,sig.side)}${pill(ST[L.st],cls)}${this.canPlace(s)?'<span class="badge go">Đặt được ngay</span>':''}${this.meter(sig)}<span class="mut">${sig.score}/${sig.checks.length}</span></div>
       <div class="stg">${esc(Strat.label(x.v))}</div> <button class="bx ghost chb" data-sigchart="${s}">📈 Xem trên biểu đồ</button>
       <ul>${sig.checks.map((c,i)=>`<li class="${c[1]?'y':''}${sig.req&&sig.req.includes(i)?' rq':''}">${esc(c[0])}</li>`).join('')}</ul>
       <div class="rail"><em style="left:0" data-l="Cắt lỗ"></em><em style="left:25%" data-l="Vào"></em><em style="left:62.5%" data-l="TP1"></em><em style="left:100%" data-l="TP2"></em></div>
@@ -161,30 +161,49 @@ const Sig={
       <h3>Cắt lỗ và chốt lời</h3><p class="note">${esc(Calib.note(x.calib))}</p>
       <p class="note">Thanh vạch trên thẻ: vạch sáng là điều kiện đã đạt, vạch có viền là điều kiện bắt buộc. Thẻ có 4–5 vạch sáng mà thiếu một vạch bắt buộc (thường là "Xu hướng 4h/1D") thì vẫn chưa vào lệnh. Đây là chủ ý của chiến lược, không phải lỗi.${chg.length?` Phiên bản này đã được bộ học siết thêm: ${chg.map(k=>`<code>${k}=${P[k]}</code>`).join(' ')}.`:''}</p>`)},
   // Đặt lệnh = ghi nhận và theo dõi lệnh trong bảng (KHÔNG gửi lệnh lên sàn). Mỗi coin chỉ có 1 lệnh mở tại một thời điểm.
-  place(s,btn){
-    const x=this.state[s],inp=$('p-main').querySelector(`[data-amt="${s}"]`),m=+(inp?inp.value:0);
+  // Coin này đặt lệnh được ngay không? (có tín hiệu chờ/đã khớp, chưa có lệnh mở, không đuổi giá, còn ký quỹ)
+  canPlace(s){
+    const x=this.state[s];if(!x||!x.ok||!x.tr)return false;const L=x.tr.L;
+    if((L.st!=='P'&&L.st!=='F')||Book.openFor(s))return false;
+    if(L.st==='F'){const px=Data.px[s]||x.D.c[x.D.c.length-1],P0=x.P||x.v.params;if(x.tr.sig.dirN*(px-L.e)/L.R>=P0.tp1R*0.8)return false}
+    const z=this.size(s);return!z.none&&!z.liqBeforeSL},
+  // Tự động đặt lệnh: coin nào đang hiện nút Đặt lệnh (chờ khớp, hoặc đã khớp mà giá chưa chạy quá 80% đường tới TP1) thì đặt luôn.
+  // Mỗi tín hiệu chỉ đặt một lần: lệnh bạn đã hủy hoặc đã đóng của cùng tín hiệu sẽ không bị đặt lại.
+  autoPlace(){
+    if(!Store.get('auto',false)||Sync.idle())return; // đồng bộ nhiều máy: chỉ máy chính tự đặt lệnh
+    const order=s=>this.state[s].tr.L.st==='P'?0:1; // ưu tiên lệnh chờ khớp khi còn ít chỗ
+    for(const s of this.watch().filter(s=>this.canPlace(s)).sort((a,b)=>order(a)-order(b))){
+      const x=this.state[s],t=x.D.t[x.tr.i];if(Book.data.orders.some(o=>o.s===s&&(o.sig0===t||(!o.sig0&&o.sigT===t))))continue;
+      if(Book.data.orders.filter(Book.isOpen).length>=UI.slots())return;
+      this.place(s,null,true)}},
+  place(s,btn,auto){
+    const x=this.state[s],inp=auto?null:$('p-main').querySelector(`[data-amt="${s}"]`),m=auto?this.size(s).budget:+(inp?inp.value:0);
     if(!x||!x.ok||!x.tr)return;
     const{sig,i,L}=x.tr;if(L.st!=='P'&&L.st!=='F')return;
-    if(Book.openFor(s)){toast(`<b>${Fmt.coin(s)}</b> đang có lệnh mở. Chỉ đặt tiếp sau khi lệnh đó đóng.`,'dn');return}
+    if(Book.openFor(s)){if(!auto)toast(`<b>${Fmt.coin(s)}</b> đang có lệnh mở. Chỉ đặt tiếp sau khi lệnh đó đóng.`,'dn');return}
     if(!(m>0)){if(inp){inp.classList.add('bad');inp.focus()}return}
+    const say=auto?()=>{}:toast;
     // Tín hiệu đã khớp từ trước: bạn vào bây giờ theo giá thị trường; giữ nguyên khoảng cắt lỗ (1R) và tỉ lệ TP của chiến lược, dời theo giá vào mới
     const mk=L.st==='F',P0=x.P||x.v.params,last=x.D.t.length-1,px=Data.px[s]||x.D.c[last],d=sig.dirN;
     const lv=mk?{e:px,sl:px-d*L.R,tp1:px+d*P0.tp1R*L.R,tp2:px+d*P0.tp2R*L.R}:{e:L.e,sl:L.sl,tp1:L.tp1,tp2:L.tp2};
-    if(mk&&d*(px-L.e)/L.R>=P0.tp1R*0.8){toast(`Giá đã chạy gần tới TP1 của tín hiệu (vào lúc ${Fmt.hm(x.D.t[x.tr.L.fill]+Data.MS[x.tf])}). Vào bây giờ là đuổi giá, bảng không ghi nhận lệnh này.`,'dn');return}
+    if(mk&&d*(px-L.e)/L.R>=P0.tp1R*0.8){say(`Giá đã chạy gần tới TP1 của tín hiệu (vào lúc ${Fmt.hm(x.D.t[x.tr.L.fill]+Data.MS[x.tf])}). Vào bây giờ là đuổi giá, bảng không ghi nhận lệnh này.`,'dn');return}
     const z=Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:lv.e,sl:lv.sl,dir:d,fixLev:x.v.params.fixLev,margin:m,avail:UI.bal()-Book.marginUsed()});
-    if(z.none){toast(`Hết ký quỹ trống: các lệnh đang mở đã giữ $${Book.marginUsed().toFixed(2)} / $${UI.bal()} vốn. Đợi lệnh đóng hoặc hủy lệnh chờ.`,'dn');return}
-    if(z.liqBeforeSL){toast('Giá thanh lý nằm trước cắt lỗ, không đặt lệnh này.','dn');return}
-    if(Book.marginUsed()+z.margin>UI.bal()+1e-6){toast('Tổng ký quỹ sẽ vượt vốn, không đặt lệnh này.','dn');return}
+    if(z.none){say(`Hết ký quỹ trống: các lệnh đang mở đã giữ $${Book.marginUsed().toFixed(2)} / $${UI.bal()} vốn. Đợi lệnh đóng hoặc hủy lệnh chờ.`,'dn');return}
+    if(z.liqBeforeSL){say('Giá thanh lý nằm trước cắt lỗ, không đặt lệnh này.','dn');return}
+    if(Book.marginUsed()+z.margin>UI.bal()+1e-6){say('Tổng ký quỹ sẽ vượt vốn, không đặt lệnh này.','dn');return}
     const v=x.v,P=x.P||v.params;
     Book.add({id:`${s}|${x.tf}|${x.D.t[i]}|${Date.now()}`,s,tf:x.tf,side:sig.side,dir:sig.dirN,sigT:mk?x.D.t[last]:x.D.t[i],sig0:x.D.t[i],mkt:mk,entry:lv.e,sl:lv.sl,tp1:lv.tp1,tp2:lv.tp2,R:L.R,tp1R:P.tp1R,tp2R:P.tp2R,
       amt:z.margin,lev:z.lev,notional:z.notional,qty:z.qty,riskUSD:z.loss,liq:z.liq,bal:UI.bal(),riskPct:UI.risk(),
-      ts:Date.now(),st:L.st,fillT:L.st==='F'?Date.now():null,strat:{id:v.id,base:v.base,name:Strat.label(v)},P:{...P},feat:sig.feat});
+      ts:Date.now(),st:L.st,fillT:L.st==='F'?Date.now():null,strat:{id:v.id,base:v.base,name:Strat.label(v)},P:{...P},feat:sig.feat,auto:!!auto});
     delete this.amts[s];if(btn)btn.blur();
-    toast(`Đã ghi nhận lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: ký quỹ $${z.margin.toFixed(2)} × ${z.lev}. Bảng sẽ theo dõi tới khi đóng lệnh.`,'up');this.render()},
+    if(auto)Notify.push('place',`🤖 Tự động đặt lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: chờ khớp ${Fmt.px(lv.e)}, ký quỹ $${z.margin.toFixed(2)} × ${z.lev}`,
+      `🤖 TỰ ĐỘNG ĐẶT LỆNH ${Fmt.coin(s)} ${sig.side} (${x.tf}, ${Strat.label(v)})\n${d>0?'Buy':'Sell'} Limit ${Fmt.px(lv.e)}. Cắt lỗ ${Fmt.px(lv.sl)} (−1R), TP1 ${Fmt.px(lv.tp1)} (+${P.tp1R}R), TP2 ${Fmt.px(lv.tp2)} (+${P.tp2R}R).\nKý quỹ $${z.margin.toFixed(2)} × ${z.lev} = vị thế $${z.notional.toFixed(0)}, thua tối đa $${z.loss.toFixed(2)}.\nHãy đặt lệnh này trên sàn.`,'up');
+    else toast(`Đã ghi nhận lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: ký quỹ $${z.margin.toFixed(2)} × ${z.lev}. Bảng sẽ theo dõi tới khi đóng lệnh.`,'up');
+    if(!auto)this.render()},
   render(){
     const p=this.plan(),xs=this.watch().filter(s=>this.state[s]&&this.state[s].ok),
       isAct=s=>{const t=this.state[s].tr;return t&&Book.isOpen(t.L)},
-      act=xs.filter(isAct).sort((a,b)=>'PFH'.indexOf(this.state[a].tr.L.st)-'PFH'.indexOf(this.state[b].tr.L.st)),rest=xs.filter(s=>!isAct(s));
+      rank=s=>{const L=this.state[s].tr.L;return this.canPlace(s)?(L.st==='P'?0:1):Book.openFor(s)?2:3},act=xs.filter(isAct).sort((a,b)=>rank(a)-rank(b)),rest=xs.filter(s=>!isAct(s));
     this.kpi(p);
     paint($('grid'),act.map(s=>this.cardItem(s,p)));
     paint($('wait'),rest.map(s=>this.miniItem(s)));
@@ -209,6 +228,8 @@ const Sig={
     $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});
     $('tf').addEventListener('input',()=>this.reload());
     $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()});
+    $('autoon').checked=Store.get('auto',false);
+    $('autoon').addEventListener('change',()=>{const on=$('autoon').checked;Store.set('auto',on);toast(on?'Đã bật <b>tự động đặt lệnh</b>: coin nào hiện nút Đặt lệnh sẽ được ghi nhận ngay với số tiền gợi ý (chỉ trên thiết bị này).':'Đã tắt tự động đặt lệnh.',on?'up':'');if(on){this.autoPlace();this.render()}});
     $('rescan').onclick=async()=>{await Scan.run();await this.refresh();await Calib.run(this.focus,UI.tf());await this.refresh()};
     document.addEventListener('mousemove',e=>{const c=e.target.closest&&e.target.closest('.card,.mini,.tile,.kpi');if(c){const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')}});
     document.addEventListener('click',Tbl.click)}

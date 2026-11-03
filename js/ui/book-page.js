@@ -22,6 +22,8 @@ const BookPage={
   side:z=>`<span class="sd ${z.side==='LONG'?'up':'dn'}">${z.side}</span>`,
   chip:(v,t,live)=>`<span class="chip ${v>0?'up':v<0?'dn':''}"${live?` data-live="${live}"`:''}>${t}</span>`,
   N:z=>z.notional||z.amt,
+  // Nhãn R: 1R = khoảng từ giá vào tới cắt lỗ ban đầu
+  rl:(r,pct)=>`<span class="rtag ${r>0?'up':r<0?'dn':''}">${r>0?'+':r<0?'−':''}${+Math.abs(r).toFixed(2)}R</span>${pct!=null?`<span class="sub">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`:''}`,
   // Đã chạm mốc nào: TP1 (kể cả cắt sớm sau TP1), TP2, cắt lỗ
   hits(z){const h1=!!(z.tp1T||z.st==='H'||z.st==='B'||z.st==='T'),h2=z.st==='T',sl=z.st==='S';return{h1,h2,sl}},
   // Vị trí giá trên thang R: −1 = cắt lỗ, 0 = giá vào, tp1R = TP1, tp2R = TP2
@@ -68,17 +70,18 @@ const BookPage={
     const riskCell=z=>{const r=Book.riskNow(z),p=r/B.bal(z)*100;return z.st==='H'?'<span class="chip up">0% · đã về entry</span>':`<span class="chip ${p>10?'dn':''}">${p.toFixed(2)}%</span><span class="sub">−$${r.toFixed(2)}</span>`};
     const levCell=z=>`<b>${z.lev||1}×</b>`,mgCell=z=>z.st==='H'?`${Fmt.usd(z.amt*0.5)}<span class="sub">còn 50% · vị thế $${(B.N(z)*0.5).toFixed(0)}</span>`:`${Fmt.usd(z.amt)}<span class="sub">vị thế $${B.N(z).toFixed(0)}</span>`,liqCell=z=>z.liq?Fmt.px(z.liq):'-';
     // ---- Lệnh chờ khớp ----
-    const pend=o.filter(z=>z.st==='P'),left=z=>Math.max(0,(z.P.W||3)-Math.floor((Date.now()-z.sigT-ms(z))/ms(z)));
+    const pend=o.filter(z=>z.st==='P'),left=z=>Math.max(0,Book.effW(z)-Math.floor((Date.now()-z.sigT-ms(z))/ms(z)));
     $('np').textContent=pend.length;
     Tbl.render('pend',$('tpend'),[
       {k:'ts',h:'Giờ đặt',v:z=>z.ts,f:z=>Fmt.hm(z.ts)},
-      {k:'s',h:'Coin',v:z=>z.s,f:z=>coinLink(z.s,z.tf)},
+      {k:'s',h:'Coin',v:z=>z.s,f:z=>coinLink(z.s,z.tf)+(z.auto?'<span class="sub">🤖 tự động</span>':'')},
       {k:'side',h:'Hướng',v:z=>z.side,f:B.side},
       {k:'entry',h:'Giá chờ',v:z=>z.entry,f:z=>Fmt.px(z.entry)},
       {k:'now',h:'Giá hiện tại',v:z=>px(z)||0,f:z=>`<span data-live="p:${z.s}"></span>`},
       {k:'gap',h:'Cách giá',v:z=>px(z)?Math.abs(px(z)-z.entry)/z.entry:0,f:z=>`<span data-live="g:${z.id}"></span>`},
-      {k:'sl',h:'Cắt lỗ',v:z=>z.sl,f:z=>Fmt.px(z.sl)},
-      {k:'tp1',h:'TP1',v:z=>z.tp1,f:z=>Fmt.px(z.tp1)},
+      {k:'sl',h:'Cắt lỗ',v:z=>z.sl,f:z=>`${Fmt.px(z.sl)}${B.rl(-1,(z.sl/z.entry-1)*100)}`},
+      {k:'tp1',h:'TP1',v:z=>z.tp1,f:z=>`${Fmt.px(z.tp1)}${B.rl(z.tp1R||1.5,(z.tp1/z.entry-1)*100)}`},
+      {k:'tp2',h:'TP2',v:z=>z.tp2,f:z=>`${Fmt.px(z.tp2)}${B.rl(z.tp2R||3,(z.tp2/z.entry-1)*100)}`},
       {k:'amt',h:'Ký quỹ',v:z=>z.amt,f:mgCell},
       {k:'lev',h:'Đòn bẩy',v:z=>z.lev||1,f:levCell},
       {k:'risk',h:'% rủi ro vốn',v:z=>Book.riskNow(z),f:riskCell},
@@ -96,9 +99,10 @@ const BookPage={
       {k:'side',h:'Hướng',v:z=>z.side,f:B.side},
       {k:'entry',h:'Giá vào',v:z=>z.entry,f:z=>Fmt.px(z.entry)},
       {k:'now',h:'Giá hiện tại',v:z=>px(z)||0,f:z=>`<span data-live="p:${z.s}"></span>`},
-      {k:'sl',h:'Cắt lỗ',v:z=>z.st==='H'?z.entry:z.sl,f:z=>z.st==='H'?`<b class="be">${Fmt.px(z.entry)}</b><span class="sub up">đã dời về entry</span>`:Fmt.px(z.sl)},
-      {k:'tp1',h:'TP1',v:z=>z.tp1,f:z=>z.st==='H'?`<span class="chip up">✓ ${Fmt.px(z.tp1)}</span>`:Fmt.px(z.tp1)},
-      {k:'tp2',h:'TP2',v:z=>z.tp2,f:z=>Fmt.px(z.tp2)},
+      {k:'rnow',h:'Lãi hiện tại (R)',v:z=>lv(z)?lv(z).rr:0,f:z=>`<span class="rtag" data-live="rr:${z.id}">…</span>`},
+      {k:'sl',h:'Cắt lỗ',v:z=>z.st==='H'?z.entry:z.sl,f:z=>z.st==='H'?`<b class="be">${Fmt.px(z.entry)}</b><span class="sub up">đã dời về entry · 0R</span>`:`${Fmt.px(z.sl)}${B.rl(-1,(z.sl/z.entry-1)*100)}`},
+      {k:'tp1',h:'TP1',v:z=>z.tp1,f:z=>`${z.st==='H'?`<span class="chip up">✓ ${Fmt.px(z.tp1)}</span>`:Fmt.px(z.tp1)}${B.rl(z.tp1R||1.5,(z.tp1/z.entry-1)*100)}`},
+      {k:'tp2',h:'TP2',v:z=>z.tp2,f:z=>`${Fmt.px(z.tp2)}${B.rl(z.tp2R||3,(z.tp2/z.entry-1)*100)}`},
       {k:'prog',h:'Tiến trình SL → TP1 → TP2',v:z=>this.pos(z,Data.px[z.s])||0,f:z=>this.rail(z,true)},
       {k:'amt',h:'Ký quỹ',v:z=>z.amt,f:mgCell},
       {k:'lev',h:'Đòn bẩy',v:z=>z.lev||1,f:levCell},

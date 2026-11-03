@@ -5,11 +5,11 @@
    (kiểm chứng). Đồng thời đo hai lỗi bạn hay gặp:
      • "Bị quét SL rồi chạy đúng hướng": lệnh cắt lỗ xong giá chạm TP1 cũ trong 24 nến sau đó.
      • "Suýt chạm TP": lệnh thua mà giá đã đi được ≥ 80% quãng tới TP1.
-   BTC x100 giữ TP1 1,5R / TP2 3R như bạn yêu cầu; chỉ tối ưu khoảng cắt lỗ trong giới hạn an toàn với thanh lý.
+   TP1 luôn theo Cài đặt (mặc định 1,5R). TP2: cố định theo Cài đặt, hoặc Tự chọn 3 / 3,5 / 4R theo coin.
    Không có cách đặt SL/TP nào chắc chắn; đây là lựa chọn tốt nhất theo thống kê quá khứ của coin đó. */
 const Calib={
   res:{},busy:false,
-  GRID:{m:[0.8,1,1.25,1.5,2,2.5],t1:[0.5,0.75,1,1.25,1.5],t2:[1.5,2,2.5,3]},
+  GRID:{m:[0.8,1,1.25,1.5,2,2.5],t2:[3,3.5,4]}, // TP1 cố định theo Cài đặt; TP2 chọn 3–4R khi để Tự chọn
   key(s,v,tf){return`${s}|${v.id}|${tf}`},
   get(s,v,tf){const r=this.res[this.key(s,v,tf)];return r&&r.pj===JSON.stringify(v.params)?r:null},
   // Chiến lược đã áp dụng SL/TP tối ưu (nếu có): tín hiệu giữ nguyên, chỉ đổi cắt lỗ và chốt lời
@@ -41,8 +41,8 @@ const Calib={
     const an=i=>memo[i]!==undefined?memo[i]:(memo[i]=impl.analyze(D,i,P));
     for(let i=210;i<last;i++){const a=an(i);if(!a||a.side==='CHỜ')continue;const p=an(i-1);if(p&&p.side===a.side)continue;list.push({i,a})}
     const cut=Math.floor(D.c.length*0.7),base0={m:1,t1:P.tp1R,t2:P.tp2R};
-    const fixedTP=!!impl.only,G=this.GRID,cands=[];
-    for(const m of G.m)for(const t1 of fixedTP?[P.tp1R]:G.t1)for(const t2 of fixedTP?[P.tp2R]:G.t2){if(t2<=t1)continue;cands.push({m,t1,t2})}
+    const G=this.GRID,cands=[],t2s=Strat.TP().t2==='auto'?G.t2.filter(x=>x>P.tp1R):[P.tp2R];
+    for(const m of G.m)for(const t2 of t2s)cands.push({m,t1:P.tp1R,t2});
     if(!cands.some(c=>c.m===1&&c.t1===P.tp1R&&c.t2===P.tp2R))cands.push(base0);
     let best=null;const bTr=this.sim(D,list,impl,P,1,P.tp1R,P.tp2R,0,cut);
     for(const c of cands){const r=this.sim(D,list,impl,P,c.m,c.t1,c.t2,0,cut);

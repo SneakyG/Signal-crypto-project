@@ -2,9 +2,9 @@
    1) Chia dữ liệu theo thời gian: 60% đầu để HỌC, 40% sau để KIỂM CHỨNG (phần này không dùng để chọn tham số).
    2) Phân tích nguyên nhân các lệnh thua (ngược 1D, volume thấp, đuổi giá, sai Discount/Premium...).
    3) Thử siết từng tham số một nấc; giữ nấc nào làm tăng cận dưới tỉ lệ thắng ở phần HỌC mà không làm xấu phần KIỂM CHỨNG.
-   4) Mốc: 10 lệnh kiểm chứng gần nhất thắng ≥7 (và lãi kỳ vọng dương) → lưu phiên bản ✓70% rồi nhân bản để học tiếp;
-      thắng ≥9 → lưu bản dự phòng ★90%. "Thắng" nghĩa là lệnh đã đạt TP1.
-   Lưu ý: 10 lệnh là mẫu nhỏ, đạt mốc có thể do may mắn; luôn xem thêm tỉ lệ thắng tổng và cận dưới. */
+   4) Mốc: 100 lệnh kiểm chứng gần nhất thắng ≥70 (và lãi kỳ vọng dương) → lưu phiên bản ✓70% rồi nhân bản để học tiếp;
+      thắng ≥90 → lưu bản dự phòng ★90%. "Thắng" nghĩa là lệnh đã đạt TP1.
+   Phần kiểm chứng chưa đủ 100 lệnh thì chưa xét mốc. */
 const Learn={
   running:false,stopFlag:false,
   fmt(s){return s.n?`${s.w}/${s.n} thắng (${s.win.toFixed(0)}%), cận dưới ${s.wil.toFixed(0)}%, ${s.avg>=0?'+':''}${s.avg.toFixed(2)}R mỗi lệnh`:'chưa có lệnh'},
@@ -16,9 +16,9 @@ const Learn={
     const tr=[],va=[];
     for(const{s,D}of set){const cut=Math.floor(D.c.length*0.6);for(const t of Backtest.trades(D,impl,P).trades)(t.i<cut?tr:va).push({...t,s})}
     va.sort((a,b)=>a.t-b.t);
-    const l10=va.slice(-10);
+    const l10=va.slice(-Strat.N);
     return{tr:Backtest.stats(tr),va:Backtest.stats(va),T:tr,V:va,last10:l10.filter(t=>t.win).length,n10:l10.length}},
-  milestone(e){if(e.va.n<10||e.va.avg<=0)return 0;return e.last10>=9?90:e.last10>=7?70:0},
+  milestone(e){const N=Strat.N;if(e.n10<N||e.va.avg<=0)return 0;return e.last10>=0.9*N?90:e.last10>=0.7*N?70:0},
   failures(T,impl){
     const c={},L=T.filter(t=>!t.win);
     for(const t of L)for(const g of impl.tags(t.feat||{},t.side==='LONG'?1:-1))c[g]=(c[g]||0)+1;
@@ -36,12 +36,12 @@ const Learn={
       if(!set.length)throw new Error('Không tải được dữ liệu để học');
       let W=base.status==='learning'?base:Strat.clone(base,'learning');
       let cur=this.evalP(set,impl,W.params),lvl=base.status==='saved90'?90:base.status==='saved70'?70:0;
-      say(`Bắt đầu từ ${Strat.label(base)}. Huấn luyện: ${this.fmt(cur.tr)}. Kiểm chứng: ${this.fmt(cur.va)}. 10 lệnh kiểm chứng gần nhất: ${cur.last10}/${cur.n10} thắng.`);
+      say(`Bắt đầu từ ${Strat.label(base)}. Huấn luyện: ${this.fmt(cur.tr)}. Kiểm chứng: ${this.fmt(cur.va)}. ${Strat.N} lệnh kiểm chứng gần nhất: ${cur.last10}/${cur.n10} thắng${cur.n10<Strat.N?` (chưa đủ ${Strat.N} lệnh để xét mốc)`:''}.`);
       // Đạt mốc → lưu phiên bản này, nhân bản để học tiếp. Trả về true nếu đã đạt 90%.
       const check=()=>{
         const ms=this.milestone(cur);if(ms<=lvl)return false;
         W.status=ms>=90?'saved90':'saved70';W.stats=this.snap(cur,o);lvl=ms;
-        say(`🏁 Đạt mốc ${ms}%: lưu ${Strat.label(W)} (10 lệnh kiểm chứng gần nhất thắng ${cur.last10}/${cur.n10}). Nhân bản ra bản mới để học tiếp.`);
+        say(`🏁 Đạt mốc ${ms}%: lưu ${Strat.label(W)} (${Strat.N} lệnh kiểm chứng gần nhất thắng ${cur.last10}/${cur.n10}). Nhân bản ra bản mới để học tiếp.`);
         W=Strat.clone(W,'learning');Strat.save();return ms>=90};
       let done=check();
       for(let it=1;it<=o.iters&&!this.stopFlag&&!done;it++){
@@ -62,7 +62,7 @@ const Learn={
         say(line);cur=c.e;Strat.save();
         done=check();await sleep(0)}
       W.stats=this.snap(cur,o);Strat.save();
-      say(`Kết thúc. ${Strat.label(W)}: huấn luyện ${this.fmt(cur.tr)}; kiểm chứng ${this.fmt(cur.va)}; 10 lệnh gần nhất ${cur.last10}/${cur.n10}.`);
+      say(`Kết thúc. ${Strat.label(W)}: huấn luyện ${this.fmt(cur.tr)}; kiểm chứng ${this.fmt(cur.va)}; ${Strat.N} lệnh gần nhất ${cur.last10}/${cur.n10}.`);
       return W
     }catch(e){say('Lỗi: '+e.message);return null}
     finally{this.running=false}}

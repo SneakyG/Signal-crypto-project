@@ -16,6 +16,7 @@ const Life={
       if(dir>0?D.l[j]<=E:D.h[j]>=E){f=j;break}
       // Chiến lược hồi về giá (EMA): giá chạy qua TP1 khi chưa khớp nghĩa là đã lỡ nhịp. Chiến lược vùng giá (SMC/ICT) đặt lệnh chờ
       // ở vùng xa giá hiện tại nên TP1 có thể đã nằm sau giá ngay từ đầu; khi đó chỉ hủy theo valid() và thời hạn W.
+      if(dir>0?D.h[j]>=T2:D.l[j]<=T2){out.st='C';out.end=j;out.why='Giá đã chạy qua TP2 khi chưa khớp (lỡ nhịp)';return out}
       if(!impl.valid&&(dir>0?D.h[j]>=T1:D.l[j]<=T1)){out.st='C';out.end=j;out.why='Giá đã chạy qua TP1 khi chưa khớp';return out}
       if(j>=last)return out; // nến đang chạy: chưa đánh giá lại tín hiệu
       if(impl.valid){const bad=impl.valid(D,j,sig,P);if(bad){out.st='C';out.end=j;out.why=bad;return out}}

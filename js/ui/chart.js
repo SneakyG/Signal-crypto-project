@@ -17,15 +17,21 @@ const ChartView={
   async open(o){
     const lv=this.levels(o),id='c'+Date.now();
     Modal.open(`${o.side==='LONG'?'🟢':'🔴'} ${o.side} ${Fmt.coin(o.s)} · ${o.tf} · ${esc(o.title||ST[o.st]||'')}`,
-      `<div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div>
+      `<div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on':''}" data-tf="${t}">${t==='1d'?'1D':t}${t===o.tf?' · khung lệnh':''}</button>`).join('')}</div>
+      <div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div>
       <div class="chlg">${lv.map(x=>`<span class="lg ${x.k}"><i></i>${x.n}<b>${Fmt.px(x.p)}</b>${x.d!=null?`<small>${x.d>=0?'+':''}${x.d.toFixed(2)}%</small>`:''}</span>`).join('')}</div>
       <div class="row2" style="margin-top:12px"><a class="btnl" href="${TV(o.s,o.tf)}" target="_blank" rel="noopener">Mở ${Fmt.coin(o.s)} trên TradingView ↗</a><button class="ghost bx" data-copy>Sao chép các mức giá</button><span class="mut">Trên TradingView: chọn công cụ Long/Short Position rồi dán các mức này.</span></div>`);
     const box=$(id),cp=box.parentElement.querySelector('[data-copy]');
     if(cp)cp.onclick=async()=>{const txt=`${Fmt.coin(o.s)}USDT.P ${o.tf} ${o.side}\n`+lv.map(x=>`${x.n}: ${Fmt.px(x.p)}`).join('\n');try{await navigator.clipboard.writeText(txt);toast('Đã sao chép các mức giá.','up')}catch(e){toast('Trình duyệt chặn sao chép.','dn')}};
-    let D;try{D=Data.cache[o.s+'|'+o.tf]||await Sig.series(o.s,o.tf,600)}catch(e){box.innerHTML='<div class="empty">Không tải được dữ liệu nến.</div>';return}
-    const ok=await this.load();if(!$(id))return;
-    this.close();
-    if(ok)this.lwc(box,D,o,lv);else this.svg(box,D,o,lv)},
+    // Vẽ theo khung đã chọn (mặc định khung của lệnh). Khung khác chỉ tải nến để xem, không ảnh hưởng việc theo dõi lệnh.
+    const draw=async tf=>{
+      box.innerHTML='<div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div>';
+      let D;try{D=tf===o.tf?(Data.cache[o.s+'|'+o.tf]||await Sig.series(o.s,o.tf,600)):await Data.load(o.s,tf,500,6e4)}catch(e){box.innerHTML=`<div class="empty">Không tải được nến khung ${tf}: ${esc(e.message)}</div>`;return}
+      const ok=await this.load();if(!$(id))return;
+      this.close();
+      if(ok)this.lwc(box,D,o,lv,tf);else this.svg(box,D,o,lv,tf)};
+    $(id+'b').onclick=e=>{const b=e.target.closest('[data-tf]');if(!b)return;$(id+'b').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));draw(b.dataset.tf)};
+    await draw(o.tf)},
   levels(o){
     const be=o.beSL||o.st==='H',d=p=>(p/o.entry-1)*100;
     const a=[{k:'tp2',n:'TP2',p:o.tp2},{k:'tp1',n:'TP1',p:o.tp1},{k:'en',n:'Giá vào',p:o.entry},{k:'sl',n:be?'Cắt lỗ (đã dời về entry)':'Cắt lỗ',p:be?o.entry:o.sl}];
@@ -33,7 +39,7 @@ const ChartView={
     return a.map(x=>({...x,d:x.k==='en'?null:d(x.p)}))},
   tz:()=>-new Date().getTimezoneOffset()*60,
   bars(D,n=260){const k=Math.max(0,D.t.length-n),tz=this.tz(),a=[];for(let i=k;i<D.t.length;i++)a.push({time:D.t[i]/1000+tz,open:D.o[i],high:D.h[i],low:D.l[i],close:D.c[i]});return a},
-  lwc(box,D,o,lv){
+  lwc(box,D,o,lv,tf){
     const L=window.LightweightCharts,up=this.css('--up'),dn=this.css('--dn'),tx=this.css('--mut'),ln=this.css('--line'),acc=this.css('--acc');
     box.innerHTML='<div class="lwc"></div><div class="zone pz"></div><div class="zone lz"></div>';
     const el=box.firstChild,chart=L.createChart(el,{autoSize:true,layout:{background:{type:'solid',color:'transparent'},textColor:tx,fontFamily:'inherit'},
@@ -59,7 +65,7 @@ const ChartView={
     const tick=()=>{if(!box.isConnected){this.close();return}const p=Data.px[o.s],b=bars[bars.length-1];if(p!=null&&p!==b.close){b.close=p;b.high=Math.max(b.high,p);b.low=Math.min(b.low,p);s.update({...b})}place();this.cur.raf=requestAnimationFrame(tick)};
     this.cur={chart,raf:requestAnimationFrame(tick)};setTimeout(place,60)},
   // Dự phòng khi không tải được thư viện: vẽ nến và vùng lệnh bằng SVG
-  svg(box,D,o,lv){
+  svg(box,D,o,lv,tf){
     const bars=this.bars(D,120),W=900,H=420,R=130,ps=[...bars.flatMap(b=>[b.high,b.low]),...lv.map(x=>x.p)],mn=Math.min(...ps),mx=Math.max(...ps),pad=(mx-mn)*0.04;
     const y=p=>(H-10-(p-mn+pad)/(mx-mn+2*pad)*(H-20)).toFixed(1),cw=(W-R)/bars.length,x=i=>(i*cw+cw/2).toFixed(1);
     let k0=D.t.length-1;const tt=o.t0||D.t[k0];while(k0>0&&D.t[k0]>tt)k0--;const t0=D.t[k0]/1000+this.tz(),i0=Math.max(0,bars.findIndex(b=>b.time>=t0)),be=o.beSL||o.st==='H';

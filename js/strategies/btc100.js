@@ -67,6 +67,7 @@ Strat.impl.btc100={
     const need=[['needOTE',5,'vùng OTE 62–79%'],['needKZ',6,'kill zone London/New York'],['needSMT',7,'SMT phân kỳ với ETH'],['needDisc',4,'vùng Discount/Premium 4h']].find(([k,q])=>P[k]&&!ck[q]);
     if(need)return{...base,side:'CHỜ',gate:`Bộ học đã bật bắt buộc ${need[2]}, nhưng hiện chưa đạt`};
     const liq=(1/P.fixLev-Sizing.MMR)*100;
+    if(lg?D.c[i]>=entry+P.tp1R*R:D.c[i]<=entry-P.tp1R*R)return{...base,side:'CHỜ',gate:'Giá đã đi quá TP1 so với vùng FVG/OB: bỏ qua thiết lập này'};
     if(slPct>P.maxSl)return{...base,side:'CHỜ',gate:`Cắt lỗ theo cấu trúc cần ${slPct.toFixed(2)}%, vượt giới hạn ${P.maxSl}% cho x${P.fixLev} (thanh lý chỉ cách ≈ ${liq.toFixed(2)}%). Bỏ qua để không bị thanh lý trước khi chạm cắt lỗ.`};
     return{...base,side:lg?'LONG':'SHORT',entry,R,sl,tp1:entry+dirN*P.tp1R*R,tp2:entry+dirN*P.tp2R*R,
       feat:{disc:ck[4],ote:ck[5],kz:ck[6],smt:ck[7],vol:ck[8],slPct,src:sw.src}}},

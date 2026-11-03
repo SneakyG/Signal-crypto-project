@@ -7,7 +7,8 @@ const TG={
     const j=await(await fetch(`https://api.telegram.org/bot${t}/${m}?`+new URLSearchParams(p))).json();
     if(!j.ok)throw new Error(j.description||'Telegram báo lỗi.');return j.result},
   // Gửi lần lượt, cách nhau hơn 1 giây để không bị giới hạn tốc độ
-  send(text){const{t,c}=this.cfg();if(!t||!c)return;this.q=this.q.then(()=>this.call('sendMessage',{chat_id:c,text})).catch(()=>{}).then(()=>sleep(1100))},
+  send(text){const{t,c}=this.cfg();if(!t||!c||Sync.idle())return; // máy phụ không gửi để tránh tin trùng
+   this.q=this.q.then(()=>this.call('sendMessage',{chat_id:c,text})).catch(()=>{}).then(()=>sleep(1100))},
   say(m){$('tgm').textContent=/fetch/i.test(m)?'Không kết nối được Telegram. Kiểm tra mạng hoặc VPN.':m},
   init(){
     for(const id of['tgt','tgc']){$(id).value=Store.get(id,'');$(id).addEventListener('input',()=>Store.set(id,$(id).value))}
