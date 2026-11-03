@@ -452,3 +452,82 @@ nav .sl{display:none;font-style:normal}
   .foot{font-size:11.5px}
 }
 @media(max-width:380px){.wait{grid-template-columns:1fr}.kpi b{font-size:18px}}
+
+/* ================= SỔ LỆNH TRÊN ĐIỆN THOẠI: gọn khi nhiều lệnh, đầy đủ khi ít lệnh ================= */
+.bkbar,.monly{display:none}
+@media(max-width:760px){
+  .bkbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 0;position:sticky;top:52px;z-index:4;padding:8px 0;background:var(--bg)}
+  .seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--soft);border:1px solid var(--line)}
+  .seg button{padding:7px 12px;border-radius:9px;font-size:12.5px;font-weight:600;background:none;border:0;color:var(--mut);box-shadow:none}
+  .seg button.on{background:var(--card);color:var(--txt,inherit);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .bks{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}.bks select{width:auto!important;font-size:13px;padding:6px 8px}
+  .monly{display:inline-flex}
+  .sec{margin-top:16px}
+
+  /* Lưới 4 cột: 2 hàng tóm tắt cố định ở trên, chi tiết xếp 2 cột bên dưới */
+  :is(#tpend,#tfill,#hist) tbody{gap:8px}
+  :is(#tpend,#tfill,#hist) tbody tr{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;padding:10px 12px 12px;border-radius:14px;transition:background .2s}
+  :is(#tpend,#tfill,#hist) td{grid-column:span 2;padding:4px 0}
+  :is(#tpend,#tfill,#hist) td.c-act,:is(#tpend,#tfill,#hist) td.c-strat,:is(#tfill,#hist) td.c-prog,#hist td.c-st{grid-column:1/-1}
+  :is(#tpend,#tfill,#hist) td.c-act{flex-direction:row;gap:8px}
+  :is(#tpend,#tfill,#hist) td.c-act::before{content:none}
+  :is(#tpend,#tfill,#hist) td.c-act button{flex:1;padding:10px}
+
+  /* Hàng tóm tắt */
+  :is(#tpend,#tfill,#hist) td.c-s{grid-area:1/1/2/2;font-size:17px;font-weight:800;justify-content:center}
+  :is(#tpend,#tfill,#hist) td.c-side{grid-area:1/2/2/3;justify-content:center}
+  :is(#tpend,#tfill,#hist) td.c-s::before,:is(#tpend,#tfill,#hist) td.c-side::before{content:none}
+  :is(#tpend,#tfill,#hist) td.c-s .sub{font-size:10.5px;font-weight:500}
+  #tfill td.c-pm,#hist td.c-pm{grid-area:1/3/2/5;align-items:flex-end}
+  #tfill td.c-pm .chip,#hist td.c-pm .chip{font-size:17px;padding:4px 10px}
+  #tfill td.c-now{grid-area:2/1/3/2}#tfill td.c-rnow{grid-area:2/2/3/3}#tfill td.c-pc{grid-area:2/3/3/5;align-items:flex-end}
+  #tfill td.c-prog{grid-area:3/1/4/5}
+  #tpend td.c-entry{grid-area:1/3/2/5;align-items:flex-end;font-size:16px;font-weight:700}
+  #tpend td.c-now{grid-area:2/1/3/2}#tpend td.c-gap{grid-area:2/2/3/3}#tpend td.c-left{grid-area:2/3/3/5;align-items:flex-end}
+  #hist td.c-win{grid-area:2/1/3/2}#hist td.c-rr{grid-area:2/2/3/3;font-weight:700}#hist td.c-x{grid-area:2/3/3/5;align-items:flex-end}
+
+  /* Chế độ GỌN: chỉ hiện hàng tóm tắt; chạm vào lệnh để mở chi tiết */
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td:not(:is(.c-s,.c-side,.c-pm,.c-now,.c-rnow,.c-pc,.c-prog,.c-entry,.c-gap,.c-left,.c-win,.c-rr,.c-x)){display:none}
+  #tpend:not(.bk-full) tbody tr:not(.open) td:is(.c-pm,.c-rnow,.c-pc,.c-prog,.c-win,.c-rr,.c-x){display:none}
+  #tfill:not(.bk-full) tbody tr:not(.open) td:is(.c-entry,.c-gap,.c-left,.c-win,.c-rr,.c-x){display:none}
+  #hist:not(.bk-full) tbody tr:not(.open) td:is(.c-now,.c-rnow,.c-pc,.c-prog,.c-entry,.c-gap,.c-left){display:none}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td .sub{display:none}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-s .sub{display:block}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td::before{font-size:9.5px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-prog::before{content:none}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr{padding-bottom:16px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr::after{content:'Chạm để xem chi tiết ▾';position:absolute;left:0;right:0;bottom:3px;text-align:center;font-size:9.5px;color:var(--mut);opacity:.7}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr.open::after{content:'Thu gọn ▴'}
+  :is(#tpend,#tfill,#hist) tbody tr.open{background:linear-gradient(180deg,var(--soft),var(--card))}
+  :is(#tpend,#tfill,#hist) tbody tr.open td:nth-child(n+1){animation:none}
+  /* Đầy đủ: chi tiết tách khỏi phần tóm tắt bằng một đường mảnh */
+  :is(#tpend,#tfill,#hist) tbody tr td.c-prog{border-bottom:0}
+}
+/* Gọn hơn nữa: bỏ nhãn cột, thanh tiến trình mỏng không chữ, giá · R · % trên một hàng */
+@media(max-width:760px){
+  .bks{flex-direction:row!important;min-width:0}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open){gap:0 8px;padding:9px 12px 15px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td{padding:2px 0;justify-content:center}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td::before{content:none}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-s{font-size:16px}
+  :is(#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-pm .chip{font-size:15px;padding:3px 9px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) :is(td.c-now,td.c-gap,td.c-pc,td.c-left,td.c-x,td.c-rr){font-size:12.5px;color:var(--mut)}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-rnow .rtag{font-size:11.5px;padding:1px 6px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open) td.c-pc .chip{font-size:11.5px;padding:1px 6px}
+  #tpend:not(.bk-full) tbody tr:not(.open) td.c-left::after{content:' còn lại';font-size:10.5px}
+  #tpend:not(.bk-full) tbody tr:not(.open) td.c-entry{font-size:14.5px}
+  #tpend:not(.bk-full) tbody tr:not(.open) td.c-entry::before{content:'Giá chờ';font-size:9.5px;color:var(--mut);font-weight:600}
+  #tfill:not(.bk-full) tbody tr:not(.open) td.c-prog{padding-top:4px}
+  #tfill:not(.bk-full) tbody tr:not(.open) td.c-prog :is(.trl,.trn,.hbe){display:none}
+  #tfill:not(.bk-full) tbody tr:not(.open) td.c-prog .trk{margin:4px 6px 0}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr:not(.open)::after{content:'▾';bottom:1px;font-size:11px}
+  :is(#tpend,#tfill,#hist):not(.bk-full) tbody tr.open::after{content:'Thu gọn ▴'}
+}
+@media(max-width:760px){
+  .seg button{white-space:nowrap;padding:7px 10px}
+  .bks{white-space:nowrap}.bkbar{gap:8px}
+  #tpend:not(.bk-full) tbody tr:not(.open) td:is(.c-now,.c-left){display:block}
+  #tpend:not(.bk-full) tbody tr:not(.open) td.c-left{text-align:right}
+  :is(#tpend,#tfill,#hist) td .st{white-space:normal;max-width:100%}
+}
+@media(max-width:360px){.bks>select{max-width:118px}.seg button{padding:7px 8px;font-size:12px}}

@@ -1,7 +1,12 @@
 /* Trang Sổ lệnh: lệnh chờ khớp, lệnh đã khớp (lãi/lỗ realtime, đòn bẩy, % rủi ro, giá thanh lý; dòng đạt TP1 được tô sáng),
    lịch sử đã đóng (lọc + sắp xếp), thống kê trong ngày, biểu đồ, nhật ký và xuất Excel chuyên nghiệp. */
 const BookPage={
-  flt:'all',
+  flt:'all',open:new Set(),view:Store.get('bkview','auto'),
+  mob:()=>window.matchMedia&&matchMedia('(max-width:760px)').matches,
+  // Điện thoại: ít lệnh (≤ 2) thì hiện đầy đủ, nhiều lệnh thì gọn từng dòng; bạn có thể chọn cố định Gọn hoặc Đầy đủ
+  dense(el,n){if(!el||!el.classList)return;el.classList.toggle('bk-full',this.view==='full'||(this.view==='auto'&&n<=2))},
+  SORTS:{new:{pend:['ts',-1],fill:['ft',-1],hist:['x',-1]},pnl:{pend:['amt',-1],fill:['pm',-1],hist:['pm',-1]},loss:{pend:['amt',1],fill:['pm',1],hist:['pm',1]},coin:{pend:['s',1],fill:['s',1],hist:['s',1]}},
+  sortBy(k,quiet){const m=this.SORTS[k];if(!m)return;for(const id of['pend','fill','hist'])Tbl.st[id]={k:m[id][0],d:m[id][1]};Store.set('bksort',k);if(!quiet)this.render()},
   init(){
     $('p-book').addEventListener('click',e=>{
       const c=e.target.closest&&e.target.closest('[data-cancel]');
@@ -13,8 +18,13 @@ const BookPage={
           if(Book.cut(o.id))Sig.render()}return}
       const f=e.target.closest&&e.target.closest('[data-flt]');if(f){this.flt=f.dataset.flt;this.render();return}
       const ch=e.target.closest&&e.target.closest('[data-chart]');if(ch){ChartView.order(ch.dataset.chart);return}
-      if(e.target.closest('a,button,th'))return;
-      const r=e.target.closest&&e.target.closest('tr[data-oid]');if(r)ChartView.order(r.dataset.oid)});
+      const v=e.target.closest&&e.target.closest('[data-bkv]');if(v){this.view=v.dataset.bkv;Store.set('bkview',this.view);this.open.clear();this.render();return}
+      if(e.target.closest('a,button,th,select'))return;
+      const r=e.target.closest&&e.target.closest('tr[data-oid]');if(!r)return;
+      // Điện thoại: chạm vào lệnh để mở / thu gọn chi tiết (nút Biểu đồ nằm trong phần chi tiết). Máy tính: mở biểu đồ như cũ.
+      if(this.mob()){const id=r.dataset.oid;this.open.has(id)?this.open.delete(id):this.open.add(id);this.render();return}
+      if(!r.closest('#hist'))ChartView.order(r.dataset.oid)});
+    $('bksort').value=Store.get('bksort','new');$('bksort').addEventListener('change',()=>this.sortBy($('bksort').value));if($('bksort').value!=='new')this.sortBy($('bksort').value,true);
     $('xl').onclick=()=>this.export(Book.data);
     $('xlp').onclick=()=>Book.prev&&this.export(Book.prev);
     $('tiles').innerHTML=[['amt','Ký quỹ đã vào lệnh'],['n','Số lệnh'],['gain','Số tiền lãi'],['loss','Số tiền lỗ'],['net','Tổng kết'],['live','Đang chạy (tạm tính)']]
@@ -71,7 +81,7 @@ const BookPage={
     const levCell=z=>`<b>${z.lev||1}×</b>`,mgCell=z=>z.st==='H'?`${Fmt.usd(z.amt*0.5)}<span class="sub">còn 50% · vị thế $${(B.N(z)*0.5).toFixed(0)}</span>`:`${Fmt.usd(z.amt)}<span class="sub">vị thế $${B.N(z).toFixed(0)}</span>`,liqCell=z=>z.liq?Fmt.px(z.liq):'-';
     // ---- Lệnh chờ khớp ----
     const pend=o.filter(z=>z.st==='P'),left=z=>Math.max(0,Book.effW(z)-Math.floor((Date.now()-z.sigT-ms(z))/ms(z)));
-    $('np').textContent=pend.length;
+    $('np').textContent=pend.length;this.dense($('tpend'),pend.length);
     Tbl.render('pend',$('tpend'),[
       {k:'ts',h:'Giờ đặt',v:z=>z.ts,f:z=>Fmt.hm(z.ts)},
       {k:'s',h:'Coin',v:z=>z.s,f:z=>coinLink(z.s,z.tf)+(z.auto?'<span class="sub">🤖 tự động</span>':'')},
@@ -88,11 +98,11 @@ const BookPage={
       {k:'liq',h:'Thanh lý ≈',v:z=>z.liq||0,f:liqCell},
       {k:'left',h:'Còn hiệu lực',v:left,f:z=>left(z)+' nến'},
       {k:'strat',h:'Chiến lược',v:z=>z.strat.name,f:z=>`<span class="sub">${esc(z.strat.name)}</span>`},
-      {k:'act',h:'Thao tác',f:z=>`<button class="bx dn" data-cancel="${z.id}" title="Hủy lệnh chờ để đặt lại với thiết lập khác">Hủy lệnh</button>`}
-    ],pend,{def:{k:'ts',d:-1},attr:z=>` data-oid="${z.id}" class="clk" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Không có lệnh chờ khớp. Bấm Đặt lệnh ở thẻ tín hiệu đang chờ khớp.</div>'});
+      {k:'act',h:'Thao tác',f:z=>`<button class="bx ghost monly" data-chart="${z.id}">📈 Biểu đồ</button><button class="bx dn" data-cancel="${z.id}" title="Hủy lệnh chờ để đặt lại với thiết lập khác">Hủy lệnh</button>`}
+    ],pend,{def:{k:'ts',d:-1},attr:z=>` data-oid="${z.id}" class="clk${this.open.has(z.id)?' open':''}" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Không có lệnh chờ khớp. Bấm Đặt lệnh ở thẻ tín hiệu đang chờ khớp.</div>'});
     // ---- Lệnh đã khớp (lãi/lỗ realtime). Đạt TP1: tô sáng dòng, cắt lỗ = entry, rủi ro = 0 ----
     const fill=o.filter(Book.isFilled),lv=z=>Book.live(z);
-    $('nf').textContent=fill.length;
+    $('nf').textContent=fill.length;this.dense($('tfill'),fill.length);
     Tbl.render('fill',$('tfill'),[
       {k:'ft',h:'Giờ khớp',v:z=>z.fillT||z.ts,f:z=>Fmt.hm(z.fillT||z.ts)},
       {k:'s',h:'Coin',v:z=>z.s,f:z=>coinLink(z.s,z.tf)},
@@ -111,12 +121,12 @@ const BookPage={
       {k:'pc',h:'Lãi/Lỗ % (ký quỹ)',v:z=>lv(z)?lv(z).pct:0,f:z=>`<span class="chip" data-live="pc:${z.id}">-</span><span class="sub" data-live="pb:${z.id}"></span>`},
       {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>lv(z)?lv(z).pnl:0,f:z=>`<span class="chip" data-live="pm:${z.id}">-</span>${z.st==='H'?`<span class="sub up">đã chốt ${Fmt.sgn(Book.realized(z))}</span><span class="sub">50% còn lại: <b data-live="h2:${z.id}">…</b></span>`:''}`},
       {k:'st',h:'Trạng thái',v:z=>ST[z.st],f:z=>`<span class="st ${z.st}">${ST[z.st]}</span>${z.st==='H'?'<span class="wl w" style="margin-top:4px">ĐÃ TÍNH THẮNG</span>':''}${z.mkt?'<span class="sub">vào theo giá thị trường</span>':''}`},
-      {k:'act',h:'Thao tác',f:z=>`<button class="bx dn" data-cut="${z.id}" title="Đóng lệnh ngay theo giá thị trường">✋ Cắt lệnh</button>`}
-    ],fill,{def:{k:'ft',d:-1},attr:z=>` data-oid="${z.id}" class="clk${z.st==='H'?' tp1':''}" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Chưa có lệnh nào khớp.</div>'});
+      {k:'act',h:'Thao tác',f:z=>`<button class="bx ghost monly" data-chart="${z.id}">📈 Biểu đồ</button><button class="bx dn" data-cut="${z.id}" title="Đóng lệnh ngay theo giá thị trường">✋ Cắt lệnh</button>`}
+    ],fill,{def:{k:'ft',d:-1},attr:z=>` data-oid="${z.id}" class="clk${z.st==='H'?' tp1':''}${this.open.has(z.id)?' open':''}" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Chưa có lệnh nào khớp.</div>'});
     // ---- Lịch sử đã đóng: lọc theo kết quả ----
     const all=o.filter(z=>!Book.isOpen(z)),nc=all.filter(Book.isDone).length,nx=all.filter(Book.isCancel).length;
     const H=z=>this.hits(z),F={closed:Book.isDone,cancel:Book.isCancel,tp2:z=>H(z).h2,tp1:z=>H(z).h1,sl:z=>H(z).sl},list=F[this.flt]?all.filter(F[this.flt]):all;
-    $('nh').textContent=all.length;
+    $('nh').textContent=all.length;this.dense($('hist'),list.length);
     const n2=all.filter(z=>H(z).h2).length,n1=all.filter(z=>H(z).h1).length,ns=all.filter(z=>H(z).sl).length,ne=all.filter(z=>z.st==='E'&&!H(z).h1).length;
     put($('hsum'),all.length?`<div class="hsum"><div class="hs g2"><b>${n2}</b><span>Chạm TP2</span></div><div class="hs g1"><b>${n1}</b><span>Chạm TP1 = THẮNG</span></div><div class="hs gs"><b>${ns}</b><span>Chạm cắt lỗ</span></div><div class="hs ge"><b>${ne}</b><span>Cắt sớm trước TP1</span></div><div class="hs gx"><b>${nx}</b><span>Hết hạn / bỏ lệnh</span></div></div>`:'');
     put($('fl'),[['all','Tất cả',all.length],['closed','Đóng lệnh',nc],['tp2','🏆 Chạm TP2',n2],['tp1','✓ Chạm TP1',n1],['sl','✗ Chạm cắt lỗ',ns],['cancel','Hết hạn / Bỏ lệnh',nx]].map(([k,t,n])=>`<button data-flt="${k}"${this.flt===k?' class="on"':''}>${t} (${n})</button>`).join(''));
@@ -136,10 +146,14 @@ const BookPage={
       {k:'pc',h:'Lãi/Lỗ % (ký quỹ)',v:pct,f:z=>dn(z)?B.chip(pct(z),Fmt.pct(pct(z)))+`<span class="sub ${pb(z)>=0?'up':'dn'}">${Fmt.pct(pb(z))} vốn</span>`:'-'},
       {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>dn(z)?z.pnl:0,f:z=>dn(z)?B.chip(z.pnl,Fmt.sgn(z.pnl)):'-'},
       {k:'strat',h:'Chiến lược',v:z=>z.strat.name,f:z=>`<span class="sub">${esc(z.strat.name)}</span>`}
-    ],list,{def:{k:'x',d:-1},attr:z=>{const h=H(z);return` class="${h.h2?'r-tp2':h.h1?'r-tp1':h.sl?'r-sl':Book.isCancel(z)?'r-x':''}"`},empty:'<div class="empty">Chưa có lệnh nào trong mục này.</div>',
+    ],list,{def:{k:'x',d:-1},attr:z=>{const h=H(z);return` data-oid="${z.id}" class="${h.h2?'r-tp2':h.h1?'r-tp1':h.sl?'r-sl':Book.isCancel(z)?'r-x':''}${this.open.has(z.id)?' open':''}"`},empty:'<div class="empty">Chưa có lệnh nào trong mục này.</div>',
       foot:sd.length&&this.flt!=='cancel'?['Tổng','','',Fmt.usd(sAmt),'','','',`<b>${sd.filter(z=>z.win).length}/${sd.length}</b> thắng`,'','','',B.chip(sPct,Fmt.pct(sPct)),B.chip(sNet,Fmt.sgn(sNet)),'']:null});
-    put($('actlog'),Book.data.log.length?Book.data.log.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.text)}</p>`).join(''):'<p class="mut">Chưa có hoạt động nào hôm nay.</p>');
+    this.toolbar();put($('actlog'),Book.data.log.length?Book.data.log.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.text)}</p>`).join(''):'<p class="mut">Chưa có hoạt động nào hôm nay.</p>');
     $('xlp').hidden=!Book.prev;if(Book.prev)$('xlp').textContent='Tải kết quả '+Book.prev.day.split('-').reverse().slice(0,2).join('/')},
+
+  // Thanh hiển thị trên điện thoại: Tự động / Gọn / Đầy đủ
+  toolbar(){const el=$('bkv');if(!el)return;const h=[['auto','Tự động'],['compact','Gọn'],['full','Đầy đủ']].map(([k,t])=>`<button data-bkv="${k}" class="${this.view===k?'on':''}">${t}</button>`).join('');if(el._h!==h){el.innerHTML=h;el._h=h}
+    const ids=new Set(Book.data.orders.map(o=>o.id));for(const id of[...this.open])if(!ids.has(id))this.open.delete(id)},
 
   // ================= XUẤT EXCEL =================
   export(b){

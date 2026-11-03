@@ -17,7 +17,7 @@ const Lab={
       if(d&&confirm('Xóa phiên bản này?')){Store.set('labDead',[...Store.get('labDead',[]),d.dataset.del]);Strat.list=Strat.list.filter(v=>v.id!==d.dataset.del);if(!Strat.isAuto()&&!Strat.byId(Strat.active))Strat.active='auto';
         Strat.save();UI.fillStrat();Ana.fillStrats();this.render()}})},
   // Xóa kết quả đã ghi của phiên bản: tiến trình quay về 0/100, tự học đếm lại từ đầu
-  reset(vs){for(const v of vs){v.track=[];v.mark=0;AutoLab.queue=AutoLab.queue.filter(id=>id!==v.id);AutoLab.say(`Đặt lại bộ đếm thắng/thua của ${Strat.label(v)}: bắt đầu đếm lại từ 0/${Strat.N}.`)}Strat.save();this.render()},
+  reset(vs){for(const v of vs){v.track=[];v.mark=0;v.resetAt=Date.now();AutoLab.queue=AutoLab.queue.filter(id=>id!==v.id);AutoLab.say(`Đặt lại bộ đếm thắng/thua của ${Strat.label(v)}: bắt đầu đếm lại từ 0/${Strat.N}.`)}Strat.save();this.render()},
   renderLog(){put($('llog'),AutoLab.lines.length?AutoLab.lines.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.m)}</p>`).join(''):'<p class="mut">Chưa có hoạt động. Bảng sẽ ghi lại mỗi lần đánh giá 100 lệnh và mỗi lần tự học.</p>')},
   card(base){
     const im=Strat.impl[base],vs=Strat.list.filter(v=>v.base===base).sort((a,b)=>a.ver-b.ver),used=v=>Strat.active===v.id||(Strat.isAuto()&&Object.values(Scan.best).includes(v.id));

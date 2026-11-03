@@ -67,6 +67,8 @@
     <div class="acts"><button id="xl">Xuất Excel</button><button class="ghost" id="xlp" hidden>Tải kết quả hôm qua</button></div></div>
   <div class="tiles" id="tiles"></div>
   <div class="panel"><div class="ch"><b>Lãi/lỗ lũy kế hôm nay</b><span id="pcv"></span></div><div id="pnlc"></div></div>
+  <div class="bkbar"><div class="seg" id="bkv"></div>
+    <label class="bks">Sắp xếp<select id="bksort"><option value="new">Mới nhất</option><option value="pnl">Lãi nhiều nhất</option><option value="loss">Lỗ nhiều nhất</option><option value="coin">Tên coin A→Z</option></select></label></div>
   <div class="sec">Lệnh chờ khớp<span class="cnt" id="np">0</span></div><div id="tpend"></div>
   <div class="sec">Lệnh đã khớp<span class="cnt" id="nf">0</span></div><div id="tfill"></div>
   <div class="sec">Lịch sử lệnh đã đóng<span class="cnt" id="nh">0</span></div>
@@ -194,7 +196,7 @@
       Cách lấy mã: GitHub → Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token, chỉ tích quyền <b>gist</b>, chọn thời hạn. Dán cùng một mã trên mọi thiết bị.</p>
     <div class="ctl">
       <label>Mã GitHub (quyền gist)<input id="syntok" type="password" autocomplete="off" style="width:300px" placeholder="ghp_…"></label>
-      <button id="synsave">Kết nối</button><button class="ghost" id="synnow">Đồng bộ ngay</button><button class="ghost" id="synoff">Tắt</button>
+      <button id="synsave">Kết nối</button><button class="ghost" id="synnow">Đồng bộ ngay</button><button class="ghost" id="synoff">Tắt</button><button class="ghost dn" id="synwipe">Xóa dữ liệu trên mọi máy</button>
     </div>
     <div class="row2" style="margin-top:10px"><label class="sw"><input type="checkbox" id="synmain"><span></span>Máy chính</label>
       <span class="mut">Chỉ máy chính tự đặt lệnh, tự học và gửi Telegram. Nên chọn máy hay để trang mở nhất. Các máy khác vẫn xem, đặt tay, cắt và hủy lệnh.</span></div>

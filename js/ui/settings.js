@@ -10,5 +10,5 @@ const Settings={
       toast(`Đã lưu: TP1 ${t1}R, TP2 ${t2==='auto'?'tự chọn 3–4R theo coin':t2+'R'}. Bảng tính lại mọi tín hiệu; lệnh đang mở giữ mức cũ.`,'up');Sig.reload()};
     $('rsssave').onclick=()=>{Store.set('rssk',$('rssk').value.trim());toast('Đã lưu khoá. Bấm Tải lại ở trang Tin tức.','up')};
     $('resetbook').onclick=()=>{if(confirm('Xóa toàn bộ Sổ lệnh hôm nay (cả lệnh đang mở)?')){Book.data={day:Fmt.day(),orders:[],log:[],wipe:Date.now()};Book.save();BookPage.render();Sig.render();Sync.run(true)}};
-    $('resetlab').onclick=()=>{if(confirm('Đặt lại chiến lược về bản gốc và xóa các phiên bản đã học?')){Store.set('labDead',[...new Set([...Store.get('labDead',[]),...Strat.list.filter(v=>v.status!=='base').map(v=>v.id)])]);Store.set('lab',null);Strat.list=[];Strat.active='auto';Strat.init();UI.fillStrat();Ana.fillStrats();Lab.render();Sig.reload()}}}
+    $('resetlab').onclick=()=>{if(confirm('Đặt lại chiến lược về bản gốc và xóa các phiên bản đã học?')){Store.set('labDead',[...new Set([...Store.get('labDead',[]),...Strat.list.filter(v=>v.status!=='base').map(v=>v.id)])]);Store.set('lab',null);Strat.list=[];Strat.active='auto';Strat.init();for(const v of Strat.list)v.resetAt=Date.now();Strat.save();UI.fillStrat();Ana.fillStrats();Lab.render();Sig.reload()}}}
 };

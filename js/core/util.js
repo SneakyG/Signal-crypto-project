@@ -62,12 +62,12 @@ const Tbl={
         if(tr._a!==a){const tmp=document.createElement('tbody');tmp.innerHTML=`<tr${a}></tr>`;const t2=tmp.firstChild;
           for(const at of[...tr.attributes])if(at.name!=='data-key'&&!t2.hasAttribute(at.name))tr.removeAttribute(at.name);
           for(const at of[...t2.attributes])tr.setAttribute(at.name,at.name==='class'&&tr.classList.contains('rin')?at.value+' rin':at.value);tr._a=a}
-        cols.forEach((c,j)=>{let td=tr.cells[j];if(!td){td=tr.insertCell();if(c.cls)td.className=c.cls;td.dataset.label=Tbl.lab(c.h)}const h=c.f(r);if(td._h!==h){td.innerHTML=h;td._h=h}});
+        cols.forEach((c,j)=>{let td=tr.cells[j];if(!td){td=tr.insertCell();td.className=(c.cls?c.cls+' ':'')+'c-'+c.k;td.dataset.label=Tbl.lab(c.h)}const h=c.f(r);if(td._h!==h){td.innerHTML=h;td._h=h}});
         const want=prev?prev.nextSibling:tb.firstChild;if(want!==tr)tb.insertBefore(tr,want);prev=tr});
       for(const tr of old.values())tr.remove();
       let tf=T.tFoot;if(foot){if(!tf)tf=T.createTFoot();if(tf._h!==foot){tf.innerHTML=`<tr>${foot}</tr>`;tf._h=foot}}else if(tf)tf.remove();
       el._h=null;return}
-    const body=list.map((r,i)=>`<tr class="rin" data-key="${esc(key(r,i))}" style="--i:${Math.min(i,12)}"${opt.attr?opt.attr(r):''}>${cols.map(c=>`<td data-label="${esc(Tbl.lab(c.h))}"${c.cls?` class="${c.cls}"`:''}>${c.f(r)}</td>`).join('')}</tr>`).join('');
+    const body=list.map((r,i)=>`<tr class="rin" data-key="${esc(key(r,i))}" style="--i:${Math.min(i,12)}"${opt.attr?opt.attr(r):''}>${cols.map(c=>`<td data-label="${esc(Tbl.lab(c.h))}" class="${c.cls?c.cls+' ':''}c-${c.k}">${c.f(r)}</td>`).join('')}</tr>`).join('');
     // gộp class của dòng (rin + class riêng) vì attr có thể tự khai báo class
     el.innerHTML=`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body.replace(/class="rin"([^>]*?) class="([^"]*)"/g,'class="rin $2"$1')}</tbody>${foot?`<tfoot><tr>${foot}</tr></tfoot>`:''}</table></div>`;el._h=null;
     const T2=el.querySelector&&el.querySelector('table');if(!T2||!T2.tBodies)return;T2._th=th;

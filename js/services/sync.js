@@ -18,7 +18,7 @@ const Sync={
     const r=await fetch(this.API+path,{...opt,cache:'no-store',headers:{Authorization:'Bearer '+this.token(),Accept:'application/vnd.github+json',...(opt.body?{'Content-Type':'application/json'}:{})}});
     if(r.status===401)throw new Error('Mã GitHub không đúng hoặc đã hết hạn.');
     if(r.status===403||r.status===429)throw new Error('GitHub tạm giới hạn (quá nhiều yêu cầu hoặc mã thiếu quyền "gist").');
-    if(!r.ok)throw new Error('GitHub báo lỗi '+r.status+'.');
+    if(!r.ok){const e=new Error('GitHub báo lỗi '+r.status+'.');e.status=r.status;throw e}
     return r.json()},
   // Tìm Gist đồng bộ của bạn; chưa có thì tạo mới (máy tạo ra Gist được đặt làm máy chính)
   async gist(){
@@ -63,7 +63,8 @@ const Sync={
     for(const r of((R.lab&&R.lab.list)||[])){
       if(dead.includes(r.id)||!Strat.impl[r.base])continue;const l=Strat.byId(r.id);
       if(!l){Strat.list.push(r);labCh=true;continue}
-      const tr=new Map();for(const x of[...(l.track||[]),...(r.track||[])])if(!tr.has(x.k))tr.set(x.k,x);
+      const ra=Math.max(l.resetAt||0,r.resetAt||0);if(ra!==(l.resetAt||0)){l.resetAt=ra;labCh=true} // đã bấm Đặt lại đếm ở một máy
+      const tr=new Map();for(const x of[...(l.track||[]),...(r.track||[])])if(!tr.has(x.k)&&(x.t||0)>ra)tr.set(x.k,x);
       const track=[...tr.values()].sort((a,b)=>a.t-b.t).slice(-300),mark=Math.max(l.mark||0,r.mark||0);
       if((r.u||0)>(l.u||0)){const{track:_,mark:__,...rest}=r;Object.assign(l,rest);labCh=true}
       if(track.length!==(l.track||[]).length||mark!==(l.mark||0)){l.track=track;l.mark=Math.min(mark,track.length);labCh=true}}
@@ -80,7 +81,8 @@ const Sync={
     if(!this.on()||this.busy)return;this.busy=true;
     try{
       Book.roll();this.stamp();
-      const id=await this.gist(),R=await this.pull(id);
+      let id=await this.gist(),R;
+      try{R=await this.pull(id)}catch(e){if(e.status!==404)throw e;Store.set('syncGist','');id=await this.gist();R=await this.pull(id)} // Gist đã bị xóa → tạo lại từ dữ liệu máy này
       const r=R?this.merge(R):{ch:false,labCh:false,cfgCh:false};
       if(r.ch||r.labCh)Book.save();if(r.labCh||r.cfgCh)Strat.save();
       // Ghi lên Gist khi dữ liệu sau khi gộp khác với bản đang có trên Gist
@@ -92,16 +94,28 @@ const Sync={
       if(r.cfgCh)Sig.reload();}
     catch(e){this.err=/fetch/i.test(e.message)?'Không kết nối được GitHub. Kiểm tra mạng.':e.message}
     finally{this.busy=false;this.paint()}},
+  // Xóa sạch: Sổ lệnh + phiên bản đã học + bộ đếm. Ghi dấu (wipe, labDead, resetAt) để các máy khác cũng xóa theo khi đồng bộ.
+  wipeAll(){
+    const now=Date.now();
+    Book.data={day:Fmt.day(),orders:[],log:[],wipe:now};Book.prev=null;Book.save();
+    Store.set('labDead',[...new Set([...Store.get('labDead',[]),...Strat.list.filter(v=>v.status!=='base').map(v=>v.id)])]);
+    Strat.list=Strat.list.filter(v=>v.status==='base');for(const v of Strat.list){v.track=[];v.mark=0;v.resetAt=now;v.stats=null;v.log=[]}
+    if(!Strat.isAuto()&&!Strat.byId(Strat.active))Strat.active='auto';
+    AutoLab.queue=[];AutoLab.lines=[];Store.set('autolabLog',[]);Strat.save();
+    BookPage.render();Sig.render();UI.fillStrat();Ana.fillStrats();Lab.render()},
   paint(){
     const el=$('synst');if(!el)return;
     if(!this.on()){el.innerHTML='Chưa bật đồng bộ. Mỗi thiết bị đang giữ dữ liệu riêng.';el.className='note';return}
     el.className='note '+(this.err?'dn':'up');
-    el.innerHTML=this.err?`⚠ ${esc(this.err)}`:`Đã đồng bộ ${this.at?Fmt.hm(this.at):'…'} · máy này là <b>${this.main()?'MÁY CHÍNH (tự đặt lệnh, tự học, gửi Telegram)':'máy phụ (xem, đặt tay, cắt, hủy lệnh)'}</b>.`},
+    el.innerHTML=this.err?`⚠ ${esc(this.err)}`:`Đã đồng bộ ${this.at?Fmt.hm(this.at):'…'}${Store.get('syncGist','')?` · <a href="https://gist.github.com/${esc(Store.get('syncGist',''))}" target="_blank" rel="noopener">mở file dữ liệu trên GitHub</a>`:''} · máy này là <b>${this.main()?'MÁY CHÍNH (tự đặt lệnh, tự học, gửi Telegram)':'máy phụ (xem, đặt tay, cắt, hủy lệnh)'}</b>.`},
   init(){
     $('syntok').value=this.token();$('synmain').checked=this.main();
     $('synsave').onclick=async()=>{const t=$('syntok').value.trim();if(!t){toast('Hãy dán mã GitHub.','dn');return}
       Store.set('syncTok',t);Store.set('syncGist','');toast('Đang kết nối GitHub…');while(this.busy)await sleep(200);await this.run(true);$('synmain').checked=this.main();
       if(!this.err)toast(this.main()?'Đã tạo nơi lưu đồng bộ. Máy này là <b>máy chính</b>. Dán cùng mã này trên thiết bị kia.':'Đã kết nối dữ liệu đồng bộ. Máy này là <b>máy phụ</b>.','up')};
+    $('synwipe').onclick=async()=>{
+      if(!confirm('Xóa toàn bộ dữ liệu trên MỌI máy: Sổ lệnh (cả lệnh đang mở), bộ đếm thắng/thua và các phiên bản đã học? Thiết lập vốn, rủi ro, TP và mã GitHub được giữ.'))return;
+      while(this.busy)await sleep(200);this.wipeAll();await this.run(true);if(!this.err)toast('Đã xóa dữ liệu trên mọi máy. Bắt đầu lại từ đầu.','up')};
     $('synnow').onclick=async()=>{while(this.busy)await sleep(200);await this.run(true);if(!this.err)toast('Đã đồng bộ.','up')};
     $('synoff').onclick=()=>{if(!confirm('Tắt đồng bộ trên máy này? Dữ liệu trên máy và trên GitHub vẫn giữ nguyên.'))return;Store.set('syncTok','');Store.set('syncGist','');$('syntok').value='';this.paint()};
     $('synmain').addEventListener('change',()=>{Store.set('syncMain',$('synmain').checked);this.paint();
