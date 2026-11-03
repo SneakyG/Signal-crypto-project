@@ -1,7 +1,7 @@
 /* Khởi động ứng dụng: nạp dữ liệu đã lưu, gắn sự kiện, chạy vòng làm mới (15 giây), quét coin (5 phút) và cập nhật giá (3 giây) */
 (async function boot(){
   Strat.init();Book.load();UI.load();UI.fillStrat();
-  const pages={main:()=>Sig.render(),book:()=>BookPage.render(),ana:()=>Ana.fillStrats(),news:()=>{$('nn').textContent='';NewsPage.render()},lab:()=>Lab.render(),set:()=>{}};
+  const pages={main:()=>Sig.render(),book:()=>BookPage.render(),ana:()=>Ana.fillStrats(),news:()=>{$('nn').textContent='';NewsPage.render()},lab:()=>Lab.render(),office:()=>Office.show(),set:()=>{}};
   document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
@@ -9,7 +9,7 @@
   $('alert').onclick=()=>{Notify.enable();$('alert').textContent='Cảnh báo đang bật'};
   TG.init();Sig.init();BookPage.init();Ana.init();NewsPage.init();Lab.init();Settings.init();Sync.init();
   Sig.render();Lab.render();NewsPage.load();
-  document.addEventListener('keydown',e=>{ // phím tắt 1–6 để chuyển trang
+  document.addEventListener('keydown',e=>{ // phím tắt 1–7 để chuyển trang
     if(e.target.closest&&e.target.closest('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
     const b=document.querySelectorAll('#nav button')[+e.key-1];if(b)b.click()});
   setInterval(()=>Tick.run(),3000);Tick.run();setInterval(()=>NetBar.paint(),1000);

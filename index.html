@@ -21,6 +21,7 @@
     <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Phân tích</span><em class="sl">Phân tích</em></button>
     <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span><em class="sl">Tin tức</em><i id="nn"></i></button>
     <button data-p="lab"><svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg><span>Chiến lược</span><em class="sl">Chiến lược</em></button>
+    <button data-p="office"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M7 11h2M15 11h2"/></svg><span>Văn phòng</span><em class="sl">Văn phòng</em></button>
     <button data-p="set"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Cài đặt</span><em class="sl">Cài đặt</em></button>
   </nav>
   <div class="live"><div class="lt"><span class="dot" id="st"></span><span>Cập nhật <b id="upd">chưa có</b></span></div><button class="ghost" id="alert">Bật cảnh báo</button></div>
@@ -31,7 +32,7 @@
 
 <!-- ================= BẢNG TÍN HIỆU ================= -->
 <section class="page on" id="p-main">
-  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, BTC x100 dùng 15m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–6 để chuyển trang.</p></div>
+  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, BTC x100 dùng 15m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–7 để chuyển trang.</p></div>
   <div class="strip ctl">
     <label>Chiến lược<select id="strat" style="min-width:260px"></select></label>
     <label>Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
@@ -75,6 +76,12 @@
   <div id="hsum"></div><div class="fl" id="fl"></div><div id="hist"></div>
   <div class="sec">Hoạt động hôm nay</div><div class="log" id="actlog"></div>
   <p class="foot">Lệnh đã khớp có lãi/lỗ chạy realtime (giá cập nhật 3 giây một lần); dòng đạt TP1 được tô xanh, cắt lỗ đã dời về giá vào nên rủi ro còn 0%. % lãi/lỗ tính trên ký quỹ (như ROE trên sàn), kèm % trên vốn. Khi lệnh đóng, lãi/lỗ được chốt và không đổi nữa. Lệnh tính là THẮNG khi đã chạm TP1 (chốt 50%, dời cắt lỗ về giá vào, phần còn lại chạy tới TP2); chưa chạm TP1 là THUA, kể cả khi cắt sớm có lãi nhỏ. Tỉ lệ thắng của chiến lược, tự học và backtest đều tính theo quy tắc này. Chiến lược tự cắt sớm khi hết hy vọng thắng và báo cho bạn. Qua ngày mới, lịch sử và thống kê tự xoá (lệnh đang mở vẫn được theo dõi). Lãi lỗ đã trừ phí 0,05% mỗi chiều. Bấm vào tiêu đề cột để sắp xếp. Bấm vào một dòng lệnh chờ hoặc đã khớp để xem lệnh trên biểu đồ (vùng Long/Short, Entry, SL, TP1, TP2).</p>
+</section>
+
+<!-- ================= VĂN PHÒNG ================= -->
+<section class="page" id="p-office">
+  <div class="ph"><h1>Văn phòng</h1><p>Cơ sở giao dịch của bạn: mỗi nhân viên phụ trách một bộ phận thật của bảng và báo đúng việc đang làm. Chạm vào nhân viên để xem chi tiết.</p></div>
+  <div id="office"></div>
 </section>
 
 <!-- ================= PHÂN TÍCH ================= -->
@@ -251,12 +258,15 @@
 <script src="js/services/news.js"></script>
 <script src="js/ui/signals.js"></script>
 <script src="js/ui/tick.js"></script>
+<script src="js/ui/chart-ana.js"></script>
 <script src="js/ui/chart.js"></script>
 <script src="js/ui/book-page.js"></script>
 <script src="js/ui/analysis.js"></script>
 <script src="js/ui/news-page.js"></script>
 <script src="js/ui/lab.js"></script>
 <script src="js/ui/settings.js"></script>
+<script src="js/ui/office.js"></script>
+<script src="js/ui/office3d.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
