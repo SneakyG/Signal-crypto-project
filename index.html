@@ -18,7 +18,7 @@
   <nav id="nav">
     <button data-p="main" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Bảng tín hiệu</span><em class="sl">Tín hiệu</em></button>
     <button data-p="book"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11"/></svg><span>Sổ lệnh</span><em class="sl">Sổ lệnh</em><i id="nb"></i></button>
-    <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Phân tích</span><em class="sl">Phân tích</em></button>
+    <button data-p="ana"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg><span>Backtest</span><em class="sl">Backtest</em></button>
     <button data-p="news"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5zM17 8h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg><span>Tin tức</span><em class="sl">Tin tức</em><i id="nn"></i></button>
     <button data-p="lab"><svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg><span>Chiến lược</span><em class="sl">Chiến lược</em></button>
     <button data-p="office"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M7 11h2M15 11h2"/></svg><span>Văn phòng</span><em class="sl">Văn phòng</em></button>
@@ -32,7 +32,7 @@
 
 <!-- ================= BẢNG TÍN HIỆU ================= -->
 <section class="page on" id="p-main">
-  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, BTC x100 dùng 15m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–7 để chuyển trang.</p></div>
+  <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, ICT BTC Scalper v2 dùng 5m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–7 để chuyển trang.</p></div>
   <div class="strip ctl">
     <label>Chiến lược<select id="strat" style="min-width:260px"></select></label>
     <label>Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
@@ -80,13 +80,15 @@
 
 <!-- ================= VĂN PHÒNG ================= -->
 <section class="page" id="p-office">
-  <div class="ph"><h1>Văn phòng</h1><p>Cơ sở giao dịch của bạn: mỗi nhân viên phụ trách một bộ phận thật của bảng và báo đúng việc đang làm. Chạm vào nhân viên để xem chi tiết.</p></div>
+  <div class="ph"><h1>Văn phòng</h1><p>Trading Hub 3D gồm 5 khu: Sàn giao dịch, Tech &amp; Algo Lab, Phòng Điều hành, Coffee Lounge và Sảnh lễ tân. Mỗi nhân viên phụ trách một bộ phận thật của bảng, báo đúng việc đang làm, rảnh thì đi pha cà phê, chơi bi-a hay ngồi sofa. Bấm vào nhân viên để camera bay tới và xem hồ sơ; bật 🔊 để nghe âm thanh vòm theo vị trí camera.</p></div>
   <div id="office"></div>
 </section>
 
-<!-- ================= PHÂN TÍCH ================= -->
+<!-- ================= BACKTEST ================= -->
 <section class="page" id="p-ana">
-  <div class="ph"><h1>Phân tích</h1><p>Phân tích chi tiết một coin từ hiện tại đến tương lai, và kiểm tra chiến lược bằng backtest.</p></div>
+  <div class="ph"><h1>Backtest</h1><p>Thử nghiệm chiến lược: nếu giữ đúng một bộ quy tắc trong N lệnh vừa qua, túi tiền của bạn sẽ ra sao?</p></div>
+  <div class="sim" id="simx"></div>
+  <details class="acc adv"><summary>Công cụ nâng cao: phân tích một coin và backtest chi tiết (dành cho người quen số liệu)</summary>
   <section class="panel">
     <h2>Phân tích coin: hiện tại đến tương lai</h2>
     <p class="note">Chọn coin rồi bấm Phân tích. Bảng đọc xu hướng 1D, 4h và khung nhỏ, tìm các mức cản/hỗ trợ và vùng OB/FVG chưa chạm, rồi thống kê trong quá khứ những lần giống hiện tại thì giá đi thế nào trong 1 đến 24 giờ tới (kèm biểu đồ dự báo xác suất và các kịch bản).</p>
@@ -146,6 +148,7 @@
     </div>
     <div id="bres"></div>
   </section>
+  </details>
 </section>
 
 <!-- ================= TIN TỨC ================= -->
@@ -180,9 +183,8 @@
   <section class="panel">
     <h2>Mô tả chi tiết các chiến lược</h2>
     <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 03/11/2026): 598 lệnh, chạm TP1 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn).</p>
-    <p class="note"><b>BTC x100 · SMC/ICT hợp lưu:</b> chỉ BTC, khung 15m, đòn bẩy cố định x100. 1D/4h cho hướng. Chờ <b>quét thanh khoản</b> (đáy/đỉnh cũ, đáy/đỉnh ngày hôm trước, đáy/đỉnh phiên Á) → <b>phá cấu trúc có lực (MSS)</b> → đặt lệnh chờ ở <b>giữa FVG/OB</b> của nhịp phá. Cộng điểm khi có vùng Discount/Premium 4h, OTE 62–79%, kill zone London (14–17h VN) / New York (19–23h VN), <b>SMT phân kỳ với ETH</b> và volume nhịp phá. Cắt lỗ ngoài cú quét, tối đa 0,45% vì thanh lý x100 chỉ cách ≈ 0,6%. TP1 1,5R chốt 50%, dời cắt lỗ về giá vào, TP2 3R chốt hết. Vẫn giữ 1 lệnh thua = % vốn đã chọn.</p>
-    <p class="note"><b>SMC / ICT:</b> 1D/4h cho hướng. Khung nhỏ tìm Order Block và Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt giữa vùng, cắt lỗ ngoài vùng.</p>
-    <p class="note"><b>BTC Scalping · ICT / SMC (5m):</b> lướt sóng ngắn BTC theo mô hình ICT Silver Bullet. Hướng: EMA khung 1h và cấu trúc 15m cùng chiều. Chỉ vào lệnh trong <b>kill zone</b> London (14–17h VN) và New York (19–22h VN). Chờ <b>quét thanh khoản</b> (đáy/đỉnh swing gần hoặc của giờ trước) → <b>MSS có lực</b> → lệnh chờ ở giữa <b>FVG</b> của nhịp phá, bắt buộc nằm trong vùng <b>OTE 62–79%</b>. Cắt lỗ ngoài cú quét, tối thiểu 0,5% để phí sàn không ăn mất lợi thế. Lệnh chờ tối đa 30 phút và bỏ khi hết kill zone; MSS 5m đảo chiều hoặc 2 giờ chưa đi được 0,5R thì cắt sớm; giữ tối đa 3 giờ. <b>Kiểm chứng BTCUSDT Futures 104 ngày tới 04/11/2026</b>: 14 lệnh, 2 thắng / 7 hòa vốn / 5 thua (36%), +0,21R mỗi lệnh sau phí. Mẫu còn rất nhỏ, chưa đủ để khẳng định có lãi.</p>
+    <p class="note"><b>SMC / ICT High Winrate (Unicorn):</b> mọi coin, khuyến nghị khung 5m. 7 điều kiện bắt buộc, thiếu 1 là bỏ lệnh: (1) cấu trúc khung <b>1H và 4H</b> cùng hướng; (2) nến quét chạm <b>OB / FVG 1H hoặc 4H</b> còn hiệu lực, hoặc quét PDH/PDL; (3) trong <b>killzone</b> London 14:00–17:00 hoặc New York AM 19:30–22:30 giờ VN; (4) nến <b>quét</b> đáy/đỉnh phiên Á hoặc đáy/đỉnh giờ trước rồi đóng cửa quay lại; (5) <b>MSS</b>: nến thân ≥ 1 ATR phá swing đối ứng; (6) nhịp phá để lại <b>FVG</b> chưa lấp; (7) <b>Unicorn</b>: FVG trùng Breaker Block, hoặc giá vào ở Discount (LONG) / Premium (SHORT). Limit ở mép gần FVG; cắt lỗ ngoài râu quét + 0,05% giá (tối thiểu 0,2% để phí không ăn hết lợi thế). <b>TP1 1–1,5R</b> (đỉnh/đáy nhịp phá nếu gần hơn) chốt 50% rồi dời cắt lỗ về giá vào + phí; <b>TP2 2,5–3R</b> (thanh khoản đối ứng 1H/ngày nếu gần hơn). Hủy lệnh chờ khi giá chạy tới TP1 trước. <b>Kiểm chứng 5 coin lớn, khung 5m, 104 ngày (23/07–04/11/2026)</b>: 52 lệnh, 11 chạm TP2 (21%), 30 chạm TP1 (58%), 21 hòa vốn, 20 thua; không thua 62%; +4,8R sau phí (+0,09R mỗi lệnh). Lợi thế còn mỏng và mẫu nhỏ, chưa đạt mức thắng 70–80%.</p>
+    <p class="note"><b>ICT BTC Scalper v2.0 (5m):</b> chỉ BTC, theo mô hình ICT 2022. 6 điều kiện bắt buộc theo thứ tự: (1) nến nằm trong <b>killzone</b> London 14–17h hoặc New York AM 19:30–22h giờ VN; (2) giá chạm <b>Order Block / FVG khung 1h</b> hoặc quét đỉnh/đáy ngày hôm trước; (3) nến 5m <b>quét</b> đáy/đỉnh phiên Á, swing gần nhất hoặc PDL/PDH ≥ 0,05 ATR rồi đóng cửa quay lại; (4) trong 8 nến có <b>MSS</b>: nến thân lớn đóng cửa phá đỉnh/đáy đối ứng, cách cú quét ≥ 1 ATR; (5) nhịp phá để lại <b>FVG ≥ 0,10 ATR</b> chưa lấp; (6) giá vào ở mép gần FVG nằm trong vùng <b>Discount</b> (LONG) / <b>Premium</b> (SHORT) của nhịp. Cắt lỗ ngoài râu quét 0,05 ATR, nếu hẹp hơn 0,15% thì nới ra 0,20%. TP1 1,5R chốt 50% và dời cắt lỗ về giá vào + phí, TP2 3R chốt hết. Lệnh chờ hủy sau 20 nến hoặc khi giá chạy tới TP1 trước. Rủi ro mặc định 1%/lệnh, ký quỹ tối đa 20% tài khoản. <b>Kiểm chứng BTCUSDT Futures 104 ngày (23/07–04/11/2026)</b>: 32 lệnh khớp, 9 thắng / 4 hòa vốn / 19 thua (thắng 28%), trước phí +4,6R nhưng sau phí 0,05%/chiều còn −9,8R (−0,31R mỗi lệnh) vì cắt lỗ trung bình chỉ 0,25% nên phí ăn ≈ 0,4R mỗi lệnh. Chưa có lợi thế: nên theo dõi thêm trước khi dùng tiền thật.</p>
   </section>
 </section>
 
@@ -243,8 +245,7 @@
 <script src="js/strategies/smc.js"></script>
 <script src="js/strategies/ema.js"></script>
 <script src="js/strategies/rsi2.js"></script>
-<script src="js/strategies/btc100.js"></script>
-<script src="js/strategies/scalp.js"></script>
+<script src="js/strategies/ict2.js"></script>
 <script src="js/trading/lifecycle.js"></script>
 <script src="js/trading/backtest.js"></script>
 <script src="js/trading/sizing.js"></script>
@@ -264,6 +265,7 @@
 <script src="js/ui/chart.js"></script>
 <script src="js/ui/book-page.js"></script>
 <script src="js/ui/analysis.js"></script>
+<script src="js/ui/backtest-page.js"></script>
 <script src="js/ui/news-page.js"></script>
 <script src="js/ui/lab.js"></script>
 <script src="js/ui/settings.js"></script>

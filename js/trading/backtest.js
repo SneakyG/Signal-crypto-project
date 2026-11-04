@@ -12,7 +12,7 @@ const Backtest={
       if(L.st==='P'||L.st==='F'||L.st==='H')break; // chưa kết thúc (hết dữ liệu): không tính
       placed++;
       if(L.st==='C'||L.st==='X'){miss++;i=L.end;continue}
-      trades.push({i,t:D.t[i],side:s.side,st:L.st,win:L.win,be:L.be,rr:L.rr-2*fee/100*L.e/L.R,gross:L.rr,end:L.end,why:L.why,feat:s.feat});
+      trades.push({i,t:D.t[i],side:s.side,st:L.st,win:L.win,be:L.be,tp1:L.tp1Hit,rr:L.rr-2*fee/100*L.e/L.R,gross:L.rr,end:L.end,why:L.why,feat:s.feat});
       i=L.end}
     return{trades,placed,miss}},
   stats(T){
@@ -23,5 +23,5 @@ const Backtest={
     const ls=n-w-be;
     return{n,w,be,ls,nl:n-ls,lossP:n?ls/n*100:0,nlWil:wilson(n-ls,n),beP:n?be/n*100:0,win:n?w/n*100:0,avg:n?sum/n:0,pf:gl?gp/gl:gp?99:0,dd,ml,wil:wilson(w,n)}},
   run(D,impl,P,opt){const r=this.trades(D,impl,P,opt);return{...r,...this.stats(r.trades)}},
-  pack(r){return{n:r.n,placed:r.placed,miss:r.miss,win:r.win,wil:r.wil,avg:r.avg,pf:r.pf}}
+  pack(r){return{n:r.n,placed:r.placed,miss:r.miss,win:r.win,wil:r.wil,avg:r.avg,pf:r.pf,w:r.w,be:r.be,ls:r.ls,tp1n:r.trades.filter(t=>t.tp1).length,sum:r.avg*r.n}}
 };

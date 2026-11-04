@@ -20,7 +20,7 @@ const Sizing={
   trade(o){
     const sl=Math.abs(o.entry-o.sl)/o.entry,f=2*FEE/100,lossT=o.bal*o.risk/100,avail=Math.max(0,o.avail==null?o.bal:Math.min(o.avail,o.bal));
     let notional=lossT/sl,lev,levCut=false,capped=false,room=false;
-    const budget=Math.min(avail,o.margin>0?o.margin:o.bal/(o.slots||20)),cap=this.safeLev(sl,o.s);
+    const budget=Math.min(avail,o.margin>0?o.margin:o.bal/(o.slots||20),o.margCap?o.bal*o.margCap:Infinity),cap=this.safeLev(sl,o.s);
     if(o.fixLev)lev=o.fixLev;
     else{const need=Math.max(1,Math.ceil(notional/Math.max(budget,1e-9)));lev=Math.min(need,cap);levCut=need>cap}
     let margin=notional/lev;

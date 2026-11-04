@@ -56,7 +56,7 @@ const Ana={
       await Data.prices();
       const n=D.c.length,k=n-2,price=Data.px[s]||D.c[n-1],I=Ind.prep(D),M=Strat.impl.smc,tw=t=>t>0?'Tăng':t<0?'Giảm':'Đi ngang / chưa rõ';
       const view=(X,name)=>{ // trạng thái một khung: xu hướng, cấu trúc, chỉ báo, vùng cung/cầu chưa chạm
-        const Ix=Ind.prep(X),j=X.c.length-2,c=X.c[j],S=M.prep(X,M.defaults),zs=S.zones.filter(z=>z.born>=j-120&&(z.mit==null||z.mit>j));
+        const Ix=Ind.prep(X),j=X.c.length-2,c=X.c[j],S=M.prep(X,{k:3,fvgMin:0.25}),zs=S.zones.filter(z=>z.born>=j-120&&(z.mit==null||z.mit>j));
         return{name,tr:HTF.trend(X)[j],rsi:Ix.rsi[j],mac:Ix.hist[j]>0,vr:X.v[j]/(Ix.vol[j]||1),atrp:Ix.atr[j]/c*100,st:S.dirAt[j],hi:S.hiAt[j],lo:S.loAt[j],
           dem:zs.filter(z=>z.side>0&&z.prox<price).sort((a,b)=>b.prox-a.prox)[0],sup:zs.filter(z=>z.side<0&&z.prox>price).sort((a,b)=>a.prox-b.prox)[0]}};
       const V=[view(D1,'1D'),view(D4,'4h'),view(D,tf)],b=D.bias[k];

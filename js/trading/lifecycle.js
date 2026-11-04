@@ -12,7 +12,7 @@
 const Life={
   res(st,rr,tp1){if(st==='T')return'win';if(st==='S')return'loss';if(st==='B')return'be';if(st==='E'||st==='M')return tp1||rr>0?'be':'loss';return null},
   run(D,i,sig,impl,P){
-    const dir=sig.dirN,E=sig.entry,SL=sig.sl,T1=sig.tp1,T2=sig.tp2,R=sig.R,last=D.c.length-1,W=P.W||3,MH=P.maxHold||48;
+    const dir=sig.dirN,E=sig.entry,SL=sig.sl,T1=sig.tp1,T2=sig.tp2,R=sig.R,t1R=sig.t1R||P.tp1R,t2R=sig.t2R||P.tp2R,last=D.c.length-1,W=P.W||3,MH=P.maxHold||48;
     const out={st:'P',i,e:E,sl:SL,tp1:T1,tp2:T2,R,dir,fill:null,tp1At:null,end:null,exit:null,rr:null,why:null,win:false,tp1Hit:false,bestR:0};
     let f=-1;
     if(sig.mkt)f=i;
@@ -32,14 +32,14 @@ const Life={
     const fin=(st,rr,exit,j,why)=>{out.st=st;out.rr=rr;out.exit=exit;out.end=j;if(why)out.why=why;out.tp1Hit=tp1;out.res=Life.res(st,rr,tp1);out.win=out.res==='win';out.be=out.res==='be';return out}; // thắng = chạm TP2, BE = hòa vốn
     for(let j=sig.mkt?f+1:f;j<=last;j++){
       const hi=D.h[j],lo=D.l[j];
-      if(dir>0?lo<=sl:hi>=sl)return tp1?fin('B',0.5*P.tp1R,sl,j):fin('S',-1,sl,j);
+      if(dir>0?lo<=sl:hi>=sl)return tp1?fin('B',0.5*t1R+0.5*dir*(sl-E)/R,sl,j):fin('S',-1,sl,j);
       if(j>f){
-        if(!tp1){if(dir>0?hi>=T1:lo<=T1){tp1=true;pos.tp1Hit=true;out.tp1At=j;out.st='H';sl=E}}
-        else if(dir>0?hi>=T2:lo<=T2)return fin('T',0.5*P.tp1R+0.5*P.tp2R,T2,j);
+        if(!tp1){if(dir>0?hi>=T1:lo<=T1){tp1=true;pos.tp1Hit=true;out.tp1At=j;out.st='H';sl=E+dir*E*(P.beOff||0)/100}} // SL về giá vào (+ phí nếu chiến lược đặt beOff)
+        else if(dir>0?hi>=T2:lo<=T2)return fin('T',0.5*t1R+0.5*t2R,T2,j);
         pos.bestR=Math.max(pos.bestR,dir*((dir>0?hi:lo)-E)/R);out.bestR=pos.bestR;
         if(j<last){ // chỉ xét thoát sớm trên nến đã đóng
           const c=D.c[j],r=dir*(c-E)/R,why=impl.exit(D,j,pos,P)||(j-f>=MH?`Hết thời gian giữ lệnh (${MH} nến)`:null);
-          if(why)return fin('E',tp1?0.5*P.tp1R+0.5*r:r,c,j,why)}}}
+          if(why)return fin('E',tp1?0.5*t1R+0.5*r:r,c,j,why)}}}
     out.tp1Hit=tp1;return out},
   // Lãi/lỗ tạm tính theo giá hiện tại, đơn vị R của toàn bộ vị thế
   mtm(o,price){if(o.st==='P')return null;const r=o.dir*(price-o.entry)/o.R;return o.st==='H'?0.5*o.tp1R+0.5*r:r},

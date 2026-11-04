@@ -21,7 +21,7 @@ Strat.impl.ema={
       const M=Strat.impl.smc,S2=M.prep(D,M.defaults),eq=(S2.hiAt[i]+S2.loAt[i])/2;
       if(P.needDisc&&!(lg?entry<eq:entry>eq))return{...base,side:'CHỜ',gate:`Bộ lọc SMC (bộ học đã bật): giá vào chưa nằm ở vùng ${lg?'Discount (dưới 50% biên độ)':'Premium (trên 50% biên độ)'}`};
       if(P.needSweep&&!((lg?S2.swU[i]:S2.swD[i])>=i-30))return{...base,side:'CHỜ',gate:'Bộ lọc SMC (bộ học đã bật): 30 nến gần nhất chưa có cú quét thanh khoản'};
-      if(P.needZone&&!M.findZone(S2,i,dirN,M.defaults,A,c))return{...base,side:'CHỜ',gate:'Bộ lọc SMC (bộ học đã bật): không có vùng OB/FVG chưa chạm gần giá'}}
+      if(P.needZone&&!M.findZone(S2,i,dirN,{maxAge:60,maxDist:3,zone:'any'},A,c))return{...base,side:'CHỜ',gate:'Bộ lọc SMC (bộ học đã bật): không có vùng OB/FVG chưa chạm gần giá'}}
     return{...base,side:lg?'LONG':'SHORT',entry,R,sl:entry-dirN*R,tp1:entry+dirN*P.tp1R*R,tp2:entry+dirN*P.tp2R*R,
       feat:{vr,rsi:r,ext:(lg?c-I.e20[i]:I.e20[i]-c)/A,str,b1ok:b1===dirN,hour:new Date(D.t[i]).getUTCHours(),atrPct:A/c*100}}},
   exit(D,j,pos,P){

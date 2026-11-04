@@ -18,7 +18,7 @@ const Calib={
     const m=c.m,t1=c.t1,t2=c.t2,maxSl=P.maxSl;
     const w=Object.create(impl);
     w.analyze=(D,i,PP)=>{const a=impl.analyze(D,i,PP);if(!a||a.side==='CHỜ')return a;
-      const R=a.R*m,d=a.dirN,o={...a,R,sl:a.entry-d*R,tp1:a.entry+d*t1*R,tp2:a.entry+d*t2*R,calib:c};
+      const R=a.R*m,d=a.dirN,o={...a,t1R:undefined,t2R:undefined,R,sl:a.entry-d*R,tp1:a.entry+d*t1*R,tp2:a.entry+d*t2*R,calib:c};
       if(maxSl&&R/a.entry*100>maxSl)return{...a,side:'CHỜ',gate:`Cắt lỗ tối ưu theo thống kê cần ${(R/a.entry*100).toFixed(2)}%, vượt giới hạn ${maxSl}% của x${P.fixLev}`};
       return o};
     return{impl:w,P:{...P,tp1R:t1,tp2R:t2}}},
@@ -27,7 +27,7 @@ const Calib={
     const PP={...P,tp1R:t1,tp2R:t2},T=[];let hunt=0,stops=0,near=0,lose=0;
     for(const x of list){
       if(x.i<from||x.i>=to)continue;const a=x.a,R=a.R*m,d=a.dirN;
-      const sig={...a,R,sl:a.entry-d*R,tp1:a.entry+d*t1*R,tp2:a.entry+d*t2*R};
+      const sig={...a,t1R:undefined,t2R:undefined,R,sl:a.entry-d*R,tp1:a.entry+d*t1*R,tp2:a.entry+d*t2*R};
       if(P.maxSl&&R/a.entry*100>P.maxSl)continue;
       const L=Life.run(D,x.i,sig,impl,PP);if(!Book.isDone(L))continue;
       const rr=L.rr-2*FEE/100*L.e/R;T.push({rr,win:L.win});
@@ -57,7 +57,7 @@ const Calib={
   // Hiệu chỉnh các coin đang theo dõi (chạy nền, từng coin một)
   async run(coins,tf){
     if(this.busy)return;this.busy=true;
-    try{for(const s of coins){const v=Strat.forCoin(s);if(!Strat.fits(v,s,tf))continue;try{await this.fit(s,v,tf)}catch(e){}}}
+    try{for(const s of coins){const v=Strat.forCoin(s);if(!Strat.fits(v,s,tf)||Strat.impl[v.base].noCalib)continue;try{await this.fit(s,v,tf)}catch(e){}}}
     finally{this.busy=false}},
   // Mô tả ngắn cho thẻ tín hiệu
   note(c){

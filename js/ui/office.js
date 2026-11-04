@@ -26,9 +26,9 @@ const Office={
     {id:'rsi2',room:'ana',name:'Cô Ngọc RSI',role:'Chuyên viên RSI(2) Connors',go:'main',look:{hair:'#111827',skin:'#f6d0b1',shirt:'#f59e0b',acc:'glasses bun'},screen:'rsi',
      job:'Theo dõi các coin dùng RSI(2): chờ RSI(2) cực đoan đúng chiều xu hướng 4h/1D, giá cùng phía SMA200 (khung 1h).'},
     {id:'smc',room:'ana',name:'Anh Minh SMC',role:'Chuyên viên SMC / ICT',go:'main',look:{hair:'#4b2e1e',skin:'#e0ac69',shirt:'#8b5cf6',acc:'glasses'},screen:'zone',
-     job:'Tìm vùng Order Block / FVG chưa chạm sau khi phá cấu trúc, ưu tiên vùng Discount/Premium và có quét thanh khoản.'},
-    {id:'btc100',room:'ana',name:'Xạ thủ Bảo',role:'Xạ thủ BTC x100 & Scalp',go:'main',look:{hair:'#0f172a',skin:'#c68642',shirt:'#ef4444',acc:'cap',capc:'#111827'},screen:'scope',
-     job:'Chỉ bắn BTC khung 15m, đòn bẩy 100x: cần quét thanh khoản, phá cấu trúc có lực, FVG/OB chưa lấp, cắt lỗ rất hẹp.'},
+     job:'Mô hình Unicorn: thuận cấu trúc 1H/4H, trong killzone chờ quét đáy/đỉnh phiên Á hoặc giờ trước tại vùng OB/FVG khung lớn → MSS thân lớn để lại FVG → lệnh chờ ở mép FVG trùng Breaker Block. TP1 1–1,5R, TP2 2,5–3R.'},
+    {id:'btc100',room:'ana',name:'Xạ thủ Bảo',role:'Xạ thủ ICT BTC Scalper v2',go:'main',look:{hair:'#0f172a',skin:'#c68642',shirt:'#ef4444',acc:'cap',capc:'#111827'},screen:'scope',
+     job:'Lướt sóng BTC 5m theo ICT 2022: trong killzone, chờ quét thanh khoản tại vùng OB/FVG 1h → MSS thân lớn để lại FVG → lệnh chờ ở mép FVG. Rủi ro 1%/lệnh, ký quỹ ≤ 20% tài khoản.'},
     {id:'trader',room:'desk',name:'Bé Lan Đặt Lệnh',role:'Nhân viên đặt lệnh',go:'book',look:{hair:'#7c2d12',skin:'#f1c27d',shirt:'#22c55e',acc:'headset'},screen:'orders',
      job:'Ghi nhận lệnh vào Sổ lệnh (bấm tay hoặc tự động), theo dõi khớp lệnh realtime 3 giây/lần. Không gửi lệnh lên sàn.'},
     {id:'risk',room:'desk',name:'Chú Hùng Rủi Ro',role:'Quản lý rủi ro',go:'main',look:{hair:'#9ca3af',skin:'#e0ac69',shirt:'#1f2937',tie:'#ef4444',acc:'glasses'},screen:'gauge',
@@ -60,8 +60,8 @@ const Office={
         return{st:Scan.at?'ok':'idle',say:Scan.at?`Xong! ${Sig.focus.length} coin tốt nhất: ${Sig.focus.slice(0,4).map(C).join(', ')}${Sig.focus.length>4?'…':''}`:'Chờ lượt quét đầu tiên…',
           kv:[['Coin quét',n],['Đang theo dõi',Sig.focus.length],['Quét lại lúc',Scan.at?Fmt.hm(Scan.at+3e5):'-']]}}
       case'rsi2':case'smc':case'btc100':{
-        const cs=[...new Set([...this.coinsOf(id),...(id==='btc100'?this.coinsOf('scalp'):[])])],sg=this.sigOf(cs),go=sg.filter(s=>Sig.canPlace(s));
-        if(!cs.length)return{st:'idle',say:id==='btc100'?'Chỉ làm việc khi chọn BTC x100 (15m) hoặc BTC Scalp ICT (5m). Đang nghỉ.':'Hiện không coin nào giao cho tôi.',kv:[['Coin phụ trách',0]]};
+        const cs=[...new Set([...this.coinsOf(id),...(id==='btc100'?this.coinsOf('ict2'):[])])],sg=this.sigOf(cs),go=sg.filter(s=>Sig.canPlace(s));
+        if(!cs.length)return{st:'idle',say:id==='btc100'?'Chỉ làm việc khi chọn ICT BTC Scalper v2 (BTC 5m). Đang nghỉ.':'Hiện không coin nào giao cho tôi.',kv:[['Coin phụ trách',0]]};
         if(go.length)return{st:'happy',say:`Có kèo! ${go.map(s=>`${C(s)} ${Sig.state[s].tr.sig.side}`).join(', ')} đặt được ngay.`,kv:[['Coin phụ trách',cs.map(C).join(', ')],['Tín hiệu',sg.length],['Đặt được ngay',go.length]]};
         if(sg.length)return{st:'busy',say:`Đang canh ${sg.map(C).join(', ')}: tín hiệu đã có lệnh hoặc chưa đủ điều kiện vào.`,kv:[['Coin phụ trách',cs.map(C).join(', ')],['Tín hiệu',sg.length]]};
         const best=cs.map(s=>({s,x:Sig.state[s]})).filter(o=>o.x&&o.x.ok&&o.x.an).sort((a,b)=>b.x.an.score-a.x.an.score)[0];

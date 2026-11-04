@@ -6,6 +6,8 @@ const Book={
   isFilled:o=>o.st==='F'||o.st==='H',
   isDone:o=>o.st==='S'||o.st==='B'||o.st==='T'||o.st==='E'||o.st==='M',
   isCancel:o=>o.st==='C'||o.st==='X'||o.st==='U',
+  // Mức SL sau TP1: giá vào (+ phí nếu chiến lược có beOff) và số R của 50% còn lại khi chạm mức này
+  beLvl:o=>o.entry*(1+o.dir*((o.P&&o.P.beOff)||0)/100),beR:o=>((o.P&&o.P.beOff)||0)/100*o.entry/o.R,
   res:o=>o.res||(Book.isDone(o)?Life.res(o.st,o.rr,!!o.tp1T):null),
   resText:o=>({win:'Thắng',be:'Hòa vốn',loss:'Thua'})[Book.res(o)]||'',
   load(){
@@ -71,7 +73,7 @@ const Book={
     const rk={P:0,F:1,H:2};
     if(Book.isOpen(L)){if(rk[L.st]>rk[o.st])o.st=L.st;return} // giá realtime có thể đã đi trước dữ liệu nến: không lùi trạng thái
     if(o.fillT&&(L.st==='C'||L.st==='X'))return;                  // đã khớp theo giá realtime: bỏ qua kết luận "không khớp" của nến
-    if(o.tp1T&&L.st==='S'){L={...L,st:'B',rr:0.5*(o.tp1R||1.5),exit:o.entry}} // sau TP1 cắt lỗ đã ở giá vào
+    if(o.tp1T&&L.st==='S'){L={...L,st:'B',rr:0.5*(o.tp1R||1.5)+0.5*Book.beR(o),exit:Book.beLvl(o)}} // sau TP1 cắt lỗ đã ở giá vào
     if(Book.isDone(L)){this.finish(o,L.st,L.rr,L.exit,L.why,Math.min(D.t[L.end]+ms,Date.now()));return}
     o.st=L.st;o.x=Math.min(D.t[L.end]+ms,Date.now());o.why=L.why||null;
     {
@@ -94,7 +96,7 @@ const Book={
       const p=Data.px[o.s];if(p==null||!(o.R>0))continue;const d=o.dir,name=`${Fmt.coin(o.s)} ${o.side}`,t1=o.tp1R||1.5,t2=o.tp2R||3;
       const past=lv=>d>0?p>=lv:p<=lv,below=lv=>d>0?p<=lv:p>=lv;
       if(o.st==='P'){const ms=Data.MS[o.tf],W=this.effW(o),left=W-Math.floor((now-o.sigT-ms)/ms);
-        let why=past(o.tp2)?'Giá đã chạy qua TP2 khi chưa khớp (lỡ nhịp)':(o.mkt?null:(!(Strat.impl[o.strat.base]||{}).valid&&past(o.tp1)?'Giá đã chạy qua TP1 khi chưa khớp':left<=0&&!below(o.entry)?`Quá ${W} nến chưa khớp`:null));
+        let why=past(o.tp2)?'Giá đã chạy qua TP2 khi chưa khớp (lỡ nhịp)':(o.mkt?null:((!(Strat.impl[o.strat.base]||{}).valid||(Strat.impl[o.strat.base]||{}).cancelTp1)&&past(o.tp1)?'Giá đã chạy qua TP1 khi chưa khớp':left<=0&&!below(o.entry)?`Quá ${W} nến chưa khớp`:null));
         if(why){o.st=why.startsWith('Quá')?'X':'C';o.x=now;o.why=why;o.pnl=0;ch=true;
           Notify.push('cancel',`Lệnh chờ <b>${name}</b> bị bỏ: ${why}`,`❌ BỎ LỆNH CHỜ ${name} (${o.tf})\nLý do: ${why}. Hãy hủy lệnh limit ${Fmt.px(o.entry)} trên sàn nếu còn treo.`,'dn');continue}}
       if(o.st==='P'&&below(o.entry)){o.st='F';o.fillT=now;ch=true;
@@ -107,7 +109,7 @@ const Book={
         continue}
       if(o.st==='H'){
         if(past(o.tp2)){this.finish(o,'T',0.5*t1+0.5*t2,o.tp2,null,now);ch=true}
-        else if(below(o.entry)){this.finish(o,'B',0.5*t1,o.entry,null,now);ch=true}}}
+        else if(below(Book.beLvl(o))){this.finish(o,'B',0.5*t1+0.5*Book.beR(o),Book.beLvl(o),null,now);ch=true}}}
     if(ch)this.save();return ch},
   // Bạn tự cắt lệnh đang chạy theo giá thị trường (dương → hòa vốn BE, âm → thua). Chỉ ghi vào tiến trình chiến lược nếu đã chạm TP1.
   cut(id){

@@ -40,7 +40,7 @@ const Sig={
   // Khối lượng cho một tín hiệu: 1 lệnh thua = X% vốn; ký quỹ người dùng nhập (nếu có) chỉ làm thay đổi đòn bẩy
   size(s,margin){
     const x=this.state[s],L=x.tr.L;
-    return Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:L.e,sl:L.sl,dir:x.tr.sig.dirN,fixLev:x.v.params.fixLev,margin,avail:UI.bal()-Book.marginUsed()})},
+    return Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:L.e,sl:L.sl,dir:x.tr.sig.dirN,fixLev:x.v.params.fixLev,margCap:Strat.impl[x.v.base].margCap,margin,avail:UI.bal()-Book.marginUsed()})},
   plan(){
     const xs=this.watch().map(s=>this.state[s]).filter(x=>x&&x.ok),
       sl=xs.map(x=>x.tr&&Book.isOpen(x.tr.L)?x.tr.L.R/x.tr.L.e:(x.v.params.k||x.v.params.slx||1.5)*x.an.A/x.price), // cắt lỗ điển hình theo chiến lược của từng coin
@@ -59,9 +59,15 @@ const Sig={
           cur[s+'|'+tf]=D;
           this.state[s]={tf,D,v,P,calib,an,tr:this.track(D,impl,P),price:Data.px[s]||D.c[D.c.length-1],spark:D.c.slice(-49,-1),n:D.c.length-1,ok:true}
         }catch(e){this.state[s]={ok:false,err:e.message}}}));
-      this.events(tf);await Book.sync(cur);this.autoPlace();this.render();
+      this.sweeps();this.events(tf);await Book.sync(cur);this.autoPlace();this.render();
       $('st').className='dot on';$('upd').textContent=new Date().toLocaleTimeString('vi-VN')
     }finally{this.busy=false}},
+  // Chiến lược có sweepAlert: báo ngay khi nến vừa đóng là một cú quét thanh khoản (bước 2), trước cả khi có MSS / lệnh chờ
+  sweeps(){
+    for(const s of Object.keys(this.state)){const x=this.state[s],I=x.ok&&Strat.impl[x.v.base],a=x.an;if(!I||!I.sweepAlert||!a||!a.sweep)continue;
+      if(a.sweep.k!==x.D.c.length-2)continue;const key='sw|'+s+'|'+a.sweep.t;if(this.seen[key])continue;this.seen[key]=1;
+      const d=a.sweep.dir>0;Notify.push('signal',`👀 <b>${Fmt.coin(s)}</b> vừa quét ${esc(a.sweep.src)} (${d?'chuẩn bị LONG':'chuẩn bị SHORT'}). Chờ MSS + FVG.`,
+        `👀 PHÁT HIỆN QUÉT THANH KHOẢN ${Fmt.coin(s)} (${x.tf}, ${Strat.label(x.v)})\nNến ${Fmt.hm(a.sweep.t)} quét ${a.sweep.src} rồi đóng cửa quay lại.${a.kz?' Đang trong killzone '+a.kz+'.':' Ngoài killzone.'}\nChờ nến phá cấu trúc (MSS) để lại FVG rồi mới có lệnh chờ.`,d?'up':'dn')}},
   // Báo khi tín hiệu của các coin đang theo dõi xuất hiện, khớp hoặc bị bỏ (kể cả khi bạn chưa đặt lệnh)
   events(tf){
     const sd=this.seeded[tf]||(this.seeded[tf]={});
@@ -112,7 +118,7 @@ const Sig={
     const tpl=`<article class="card ${sig.side} ${cls}">
       <div class="top"><b>${coinLink(s,x.tf)}</b><small>/USDT</small>${spark(x.spark,up?'up':'dn',100,30)}<span class="px" data-live="p:${s}">%PX%</span></div>
       <div class="pills">${pill(sig.side,sig.side)}${pill(ST[L.st],cls)}${this.canPlace(s)?'<span class="badge go">Đặt được ngay</span>':''}${this.meter(sig)}<span class="mut">${sig.score}/${sig.checks.length}</span></div>
-      <div class="stg">${esc(Strat.label(x.v))}</div> <button class="bx ghost chb" data-sigchart="${s}">📈 Xem trên biểu đồ</button>
+      <div class="stg">${esc(Strat.label(x.v))}</div> <button class="bx ghost chb" data-sigchart="${s}">📈 Xem trên biểu đồ</button>${this.dash(s)}
       <ul>${sig.checks.map((c,i)=>`<li class="${c[1]?'y':''}${sig.req&&sig.req.includes(i)?' rq':''}">${esc(c[0])}</li>`).join('')}</ul>
       <div class="rail"><em style="left:0" data-l="Cắt lỗ"></em><em style="left:25%" data-l="Vào"></em><em style="left:62.5%" data-l="TP1"></em><em style="left:100%" data-l="TP2"></em></div>
       <div class="lv"><div><i>Giá đặt (limit)</i><b>${Fmt.px(L.e)}</b></div><div><i>${L.st==='H'?'Cắt lỗ (đã dời về entry)':'Cắt lỗ'}</i><b>${Fmt.px(L.st==='H'?L.e:L.sl)}</b><span class="sub">${(L.R/L.e*100).toFixed(2)}% từ giá vào</span></div><div><i>Chốt lời 1 (1,5R, chốt 50%)</i><b>${Fmt.px(L.tp1)}</b></div><div><i>Chốt lời 2 (3R, chốt hết)</i><b>${Fmt.px(L.tp2)}</b></div></div>
@@ -123,6 +129,7 @@ const Sig={
     return{k:s,tpl,px:x.price}},
   // Thanh điều kiện: mỗi vạch là một điều kiện, vạch có viền là điều kiện bắt buộc
   meter(a){return`<span class="meter${a.checks.length>6?' many':''}">${a.checks.map((c,i)=>`<i class="${c[1]?'on':''}${a.req&&a.req.includes(i)?' rq':''}" style="--d:${i*80}ms" title="${esc(c[0])}"></i>`).join('')}</span>`},
+  dash(s){const x=this.state[s],I=x&&x.v&&Strat.impl[x.v.base];if(!I||!I.dash)return'';try{return`<div class="dsh">${I.dash(x,s).map(([k,v])=>`<div><i>${esc(k)}</i><b>${esc(v)}</b></div>`).join('')}</div>`}catch(e){return''}},
   miniItem(s){
     const x=this.state[s],tr=x.tr,L=tr&&tr.L,done=L&&!Book.isOpen(L)&&x.n-L.end<=2,a=x.an,up=x.spark[x.spark.length-1]>=x.spark[0],W=x.v.params.W||3,
       old=a.side!=='CHỜ',miss=(a.req||[]).filter(q=>!a.checks[q][1]).length,
@@ -130,7 +137,7 @@ const Sig={
         :old?'Tín hiệu cũ, chờ tín hiệu mới':miss?`Thiếu ${miss} điều kiện bắt buộc`:a.gate?'Bị bộ lọc chặn':a.score<a.min?`Cần ${a.min}/${a.checks.length} điều kiện`:`Nghiêng về ${a.dir}`;
     const tpl=`<article class="mini"><div class="mh"><b>${coinLink(s,x.tf)}</b><small>/USDT</small><span class="px" data-live="p:${s}">%PX%</span></div>${spark(x.spark,up?'up':'dn',240,34)}
       <div class="mf"><span class="badge ${done?tr.sig.side:old?a.side:''}">${done?ST[L.st]:old?a.side+' · cũ':'Chờ tín hiệu'}</span>${this.meter(a)}</div>
-      <small class="mut">${a.score}/${a.checks.length} điều kiện (${a.dir}). ${esc(txt)}</small>
+      <small class="mut">${a.score}/${a.checks.length} điều kiện (${a.dir}). ${esc(txt)}</small>${this.dash(s)}
       <div class="mfoot"><span class="stg">${esc(Strat.label(x.v))}</span><span class="mbt"><button class="bx ghost" data-watchchart="${s}">📈 Phân tích</button><button class="bx ghost why" data-why="${s}">Vì sao chưa có lệnh?</button></span></div></article>`;
     return{k:s,tpl,px:x.price}},
   // Giải thích chi tiết vì sao coin chưa có lệnh chờ
@@ -165,7 +172,7 @@ const Sig={
   canPlace(s){
     const x=this.state[s];if(!x||!x.ok||!x.tr)return false;const L=x.tr.L;
     if((L.st!=='P'&&L.st!=='F')||Book.openFor(s))return false;
-    if(L.st==='F'){const px=Data.px[s]||x.D.c[x.D.c.length-1],P0=x.P||x.v.params;if(x.tr.sig.dirN*(px-L.e)/L.R>=P0.tp1R*0.8)return false}
+    if(L.st==='F'){const px=Data.px[s]||x.D.c[x.D.c.length-1],P0=x.P||x.v.params;if(x.tr.sig.dirN*(px-L.e)/L.R>=(x.tr.sig.t1R||P0.tp1R)*0.8)return false}
     const z=this.size(s);return!z.none&&!z.liqBeforeSL},
   // Tự động đặt lệnh: coin nào đang hiện nút Đặt lệnh (chờ khớp, hoặc đã khớp mà giá chưa chạy quá 80% đường tới TP1) thì đặt luôn.
   // Mỗi tín hiệu chỉ đặt một lần: lệnh bạn đã hủy hoặc đã đóng của cùng tín hiệu sẽ không bị đặt lại.
@@ -184,21 +191,21 @@ const Sig={
     if(!(m>0)){if(inp){inp.classList.add('bad');inp.focus()}return}
     const say=auto?()=>{}:toast;
     // Tín hiệu đã khớp từ trước: bạn vào bây giờ theo giá thị trường; giữ nguyên khoảng cắt lỗ (1R) và tỉ lệ TP của chiến lược, dời theo giá vào mới
-    const mk=L.st==='F',P0=x.P||x.v.params,last=x.D.t.length-1,px=Data.px[s]||x.D.c[last],d=sig.dirN;
-    const lv=mk?{e:px,sl:px-d*L.R,tp1:px+d*P0.tp1R*L.R,tp2:px+d*P0.tp2R*L.R}:{e:L.e,sl:L.sl,tp1:L.tp1,tp2:L.tp2};
-    if(mk&&d*(px-L.e)/L.R>=P0.tp1R*0.8){say(`Giá đã chạy gần tới TP1 của tín hiệu (vào lúc ${Fmt.hm(x.D.t[x.tr.L.fill]+Data.MS[x.tf])}). Vào bây giờ là đuổi giá, bảng không ghi nhận lệnh này.`,'dn');return}
-    const z=Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:lv.e,sl:lv.sl,dir:d,fixLev:x.v.params.fixLev,margin:m,avail:UI.bal()-Book.marginUsed()});
+    const mk=L.st==='F',P0=x.P||x.v.params,last=x.D.t.length-1,px=Data.px[s]||x.D.c[last],d=sig.dirN,t1R=sig.t1R||P0.tp1R,t2R=sig.t2R||P0.tp2R; // TP theo từng tín hiệu nếu chiến lược có
+    const lv=mk?{e:px,sl:px-d*L.R,tp1:px+d*t1R*L.R,tp2:px+d*t2R*L.R}:{e:L.e,sl:L.sl,tp1:L.tp1,tp2:L.tp2};
+    if(mk&&d*(px-L.e)/L.R>=t1R*0.8){say(`Giá đã chạy gần tới TP1 của tín hiệu (vào lúc ${Fmt.hm(x.D.t[x.tr.L.fill]+Data.MS[x.tf])}). Vào bây giờ là đuổi giá, bảng không ghi nhận lệnh này.`,'dn');return}
+    const z=Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:lv.e,sl:lv.sl,dir:d,fixLev:x.v.params.fixLev,margCap:Strat.impl[x.v.base].margCap,margin:m,avail:UI.bal()-Book.marginUsed()});
     if(z.none){say(`Hết ký quỹ trống: các lệnh đang mở đã giữ $${Book.marginUsed().toFixed(2)} / $${UI.bal()} vốn. Đợi lệnh đóng hoặc hủy lệnh chờ.`,'dn');return}
     if(auto&&!z.full)return; // tự động: ký quỹ trống chỉ đủ một vị thế thua chưa tới 1R → không đặt
     if(z.liqBeforeSL){say('Giá thanh lý nằm trước cắt lỗ, không đặt lệnh này.','dn');return}
     if(Book.marginUsed()+z.margin>UI.bal()+1e-6){say('Tổng ký quỹ sẽ vượt vốn, không đặt lệnh này.','dn');return}
     const v=x.v,P=x.P||v.params;
-    Book.add({id:`${s}|${x.tf}|${x.D.t[i]}|${Date.now()}`,s,tf:x.tf,side:sig.side,dir:sig.dirN,sigT:mk?x.D.t[last]:x.D.t[i],sig0:x.D.t[i],mkt:mk,entry:lv.e,sl:lv.sl,tp1:lv.tp1,tp2:lv.tp2,R:L.R,tp1R:P.tp1R,tp2R:P.tp2R,
+    Book.add({id:`${s}|${x.tf}|${x.D.t[i]}|${Date.now()}`,s,tf:x.tf,side:sig.side,dir:sig.dirN,sigT:mk?x.D.t[last]:x.D.t[i],sig0:x.D.t[i],mkt:mk,entry:lv.e,sl:lv.sl,tp1:lv.tp1,tp2:lv.tp2,R:L.R,tp1R:t1R,tp2R:t2R,
       amt:z.margin,lev:z.lev,notional:z.notional,qty:z.qty,riskUSD:z.loss,liq:z.liq,bal:UI.bal(),riskPct:UI.risk(),
       ts:Date.now(),st:L.st,fillT:L.st==='F'?Date.now():null,strat:{id:v.id,base:v.base,name:Strat.label(v)},P:{...P},feat:sig.feat,auto:!!auto});
     delete this.amts[s];if(btn)btn.blur();
     if(auto)Notify.push('place',`🤖 Tự động đặt lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: chờ khớp ${Fmt.px(lv.e)}, ký quỹ $${z.margin.toFixed(2)} × ${z.lev}`,
-      `🤖 TỰ ĐỘNG ĐẶT LỆNH ${Fmt.coin(s)} ${sig.side} (${x.tf}, ${Strat.label(v)})\n${d>0?'Buy':'Sell'} Limit ${Fmt.px(lv.e)}. Cắt lỗ ${Fmt.px(lv.sl)} (−1R), TP1 ${Fmt.px(lv.tp1)} (+${P.tp1R}R), TP2 ${Fmt.px(lv.tp2)} (+${P.tp2R}R).\nKý quỹ $${z.margin.toFixed(2)} × ${z.lev} = vị thế $${z.notional.toFixed(0)}, thua tối đa $${z.loss.toFixed(2)}.\nHãy đặt lệnh này trên sàn.`,'up');
+      `🤖 TỰ ĐỘNG ĐẶT LỆNH ${Fmt.coin(s)} ${sig.side} (${x.tf}, ${Strat.label(v)})\n${d>0?'Buy':'Sell'} Limit ${Fmt.px(lv.e)}. Cắt lỗ ${Fmt.px(lv.sl)} (−1R), TP1 ${Fmt.px(lv.tp1)} (+${t1R}R), TP2 ${Fmt.px(lv.tp2)} (+${t2R}R).\nKý quỹ $${z.margin.toFixed(2)} × ${z.lev} = vị thế $${z.notional.toFixed(0)}, thua tối đa $${z.loss.toFixed(2)}.\nHãy đặt lệnh này trên sàn.`,'up');
     else toast(`Đã ghi nhận lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: ký quỹ $${z.margin.toFixed(2)} × ${z.lev}. Bảng sẽ theo dõi tới khi đóng lệnh.`,'up');
     if(!auto)this.render()},
   render(){
@@ -229,7 +236,7 @@ const Sig={
     for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();this.amts={};this.render()});
     $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});
     $('tf').addEventListener('input',()=>this.reload());
-    $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()});
+    $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();const I=!Strat.isAuto()&&Strat.I();if(I&&I.profile&&I.profile.risk&&UI.risk()!==I.profile.risk){$('risk').value=I.profile.risk;UI.save();toast(`${esc(Strat.label(Strat.cur()))} dùng rủi ro mặc định <b>${I.profile.risk}%/lệnh</b>. Đã đổi ô Rủi ro mỗi lệnh, bạn vẫn có thể sửa lại.`,'up')}this.reload()});
     $('autoon').checked=Store.get('auto',false);
     $('autoon').addEventListener('change',()=>{const on=$('autoon').checked;Store.set('auto',on);toast(on?'Đã bật <b>tự động đặt lệnh</b>: coin nào hiện nút Đặt lệnh sẽ được ghi nhận ngay với số tiền gợi ý (chỉ trên thiết bị này).':'Đã tắt tự động đặt lệnh.',on?'up':'');if(on){this.autoPlace();this.render()}});
     $('rescan').onclick=async()=>{await Scan.run();await this.refresh();await Calib.run(this.focus,UI.tf());await this.refresh()};
