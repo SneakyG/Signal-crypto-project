@@ -684,3 +684,6 @@ nav .sl{display:none;font-style:normal}
 .o3-bar .sw{padding:6px 12px;border-radius:99px;background:rgba(10,18,32,.72);color:#e5e7eb;font-size:12px}
 .o3-help{position:absolute;left:12px;bottom:10px;font-size:11px;color:#94a3b8;background:rgba(10,18,32,.6);padding:4px 10px;border-radius:99px;pointer-events:none}
 @media(max-width:760px){.o3{height:68vh;border-radius:14px}.o3-bar .seg button{padding:5px 8px;font-size:11px}.o3-tag>b{font-size:9.5px}.o3-bub{max-width:150px;font-size:10.5px}.o3-help{font-size:10px}}
+.wl.be{background:rgba(96,165,250,.2);color:#93c5fd}
+.wl{white-space:nowrap}
+.mbt{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:760px){.mbt{width:100%}.mbt button{flex:1}}

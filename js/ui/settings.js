@@ -1,6 +1,6 @@
 /* Trang Cài đặt: khoá RSS (tuỳ chọn), đặt lại dữ liệu */
 const Settings={
-  tpNote(){const t=Strat.TP(),w=t.t2==='auto'?3:+t.t2;$('tpn').innerHTML=`Chạm TP1 (+${t.t1}R): chốt 50%, dời cắt lỗ về giá vào → lệnh THẮNG ít nhất <b>+${(t.t1/2).toFixed(2)}R</b>. Chạm tiếp TP2 (+${w}R${t.t2==='auto'?' hoặc 3,5 / 4R':''}) → tổng <b>+${((t.t1+w)/2).toFixed(2)}R</b>. Thua = −1R. Để hòa vốn khi phần còn lại về giá vào, cần thắng ≥ <b>${(100/(1+t.t1/2)).toFixed(0)}%</b> số lệnh.`},
+  tpNote(){const t=Strat.TP(),w=t.t2==='auto'?3:+t.t2;$('tpn').innerHTML=(()=>{const R1=(UI.bal()||1000)*UI.risk()/100,m=x=>'$'+(x*R1).toFixed(2);return`1R = ${UI.risk()}% × $${UI.bal()||1000} = <b>$${R1.toFixed(2)}</b>. Chạm TP1 (+${t.t1}R): chốt 50% → <b>+${m(t.t1/2)}</b>, dời cắt lỗ về giá vào (tối thiểu <b>hòa vốn – BE</b>). Chạm tiếp TP2 (+${w}R${t.t2==='auto'?' hoặc 3,5 / 4R':''}): chốt 50% còn lại → <b>+${m(w/2)}</b>, tổng <b>+${m((t.t1+w)/2)}</b> (+${((t.t1+w)/2).toFixed(2)}R) = <b>THẮNG</b>. Chạm cắt lỗ = −1R = <b>−${m(1)}</b> = THUA. Phí sàn tính riêng.`})()},
   init(){
     $('rssk').value=Store.get('rssk','');
     const tp=Strat.TP();$('stp1').value=String(tp.t1);$('stp2').value=String(tp.t2);this.tpNote();

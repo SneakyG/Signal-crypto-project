@@ -70,9 +70,9 @@ const BookPage={
     const T=(k,v,fmt,sub,c)=>{const e=$('t-'+k);tween(e,v,fmt);e.className=c||'';$('t-'+k+'2').textContent=sub};
     T('amt',S.amt,Fmt.usd,`${S.n-S.cn} lệnh đã vào · đang giữ $${Book.marginUsed().toFixed(2)} / $${bal} vốn`);
     T('n',S.n,v=>Math.round(v),`${S.op} mở, ${S.cl} đóng, ${S.cn} bỏ/hết hạn`);
-    T('gain',S.gain,v=>v>0?Fmt.sgn(v):'$0.00',`${S.w} lệnh đã đóng thắng${S.npart?` + ${S.npart} lệnh đã chốt 50% ở TP1`:''}`,'up');
+    T('gain',S.gain,v=>v>0?Fmt.sgn(v):'$0.00',`${S.w} thắng (TP2) · ${S.be} hòa vốn${S.npart?` · ${S.npart} lệnh đã chốt 50% ở TP1`:''}`,'up');
     T('loss',S.loss,v=>v<0?Fmt.sgn(v):'$0.00',`${S.l} lệnh thua`,'dn');
-    T('net',S.net,Fmt.sgn,`${bal?(S.net/bal*100).toFixed(2):0}% vốn, thắng ${S.rate.toFixed(0)}%${S.npart?` · gồm ${Fmt.sgn(S.part)} đã chốt 50% ở TP1 của ${S.npart} lệnh đang chạy`:''}`,S.net>=0?'up':'dn');
+    T('net',S.net,Fmt.sgn,`${bal?(S.net/bal*100).toFixed(2):0}% vốn · ${S.w} thắng / ${S.be} BE / ${S.l} thua${S.npart?` · gồm ${Fmt.sgn(S.part)} đã chốt 50% ở TP1 của ${S.npart} lệnh đang chạy`:''}`,S.net>=0?'up':'dn');
     this.liveTotal();
     const done=o.filter(Book.isDone).sort((a,b)=>(a.x||0)-(b.x||0));
     let c=0;put($('pnlc'),done.length?lineChart([0,...done.map(z=>c+=z.pnl)]):'<div class="empty">Biểu đồ lãi/lỗ lũy kế sẽ hiện khi có lệnh đóng.</div>');
@@ -120,7 +120,7 @@ const BookPage={
       {k:'liq',h:'Thanh lý ≈',v:z=>z.liq||0,f:liqCell},
       {k:'pc',h:'Lãi/Lỗ % (ký quỹ)',v:z=>lv(z)?lv(z).pct:0,f:z=>`<span class="chip" data-live="pc:${z.id}">-</span><span class="sub" data-live="pb:${z.id}"></span>`},
       {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>lv(z)?lv(z).pnl:0,f:z=>`<span class="chip" data-live="pm:${z.id}">-</span>${z.st==='H'?`<span class="sub up">đã chốt ${Fmt.sgn(Book.realized(z))}</span><span class="sub">50% còn lại: <b data-live="h2:${z.id}">…</b></span>`:''}`},
-      {k:'st',h:'Trạng thái',v:z=>ST[z.st],f:z=>`<span class="st ${z.st}">${ST[z.st]}</span>${z.st==='H'?'<span class="wl w" style="margin-top:4px">ĐÃ TÍNH THẮNG</span>':''}${z.mkt?'<span class="sub">vào theo giá thị trường</span>':''}`},
+      {k:'st',h:'Trạng thái',v:z=>ST[z.st],f:z=>`<span class="st ${z.st}">${ST[z.st]}</span>${z.st==='H'?'<span class="wl be" style="margin-top:4px">AN TOÀN · TỐI THIỂU HÒA VỐN</span>':''}${z.mkt?'<span class="sub">vào theo giá thị trường</span>':''}`},
       {k:'act',h:'Thao tác',f:z=>`<button class="bx ghost monly" data-chart="${z.id}">📈 Biểu đồ</button><button class="bx dn" data-cut="${z.id}" title="Đóng lệnh ngay theo giá thị trường">✋ Cắt lệnh</button>`}
     ],fill,{def:{k:'ft',d:-1},attr:z=>` data-oid="${z.id}" class="clk${z.st==='H'?' tp1':''}${this.open.has(z.id)?' open':''}" title="Bấm để xem lệnh trên biểu đồ"`,empty:'<div class="empty">Chưa có lệnh nào khớp.</div>'});
     // ---- Lịch sử đã đóng: lọc theo kết quả ----
@@ -128,7 +128,7 @@ const BookPage={
     const H=z=>this.hits(z),F={closed:Book.isDone,cancel:Book.isCancel,tp2:z=>H(z).h2,tp1:z=>H(z).h1,sl:z=>H(z).sl},list=F[this.flt]?all.filter(F[this.flt]):all;
     $('nh').textContent=all.length;this.dense($('hist'),list.length);
     const n2=all.filter(z=>H(z).h2).length,n1=all.filter(z=>H(z).h1).length,ns=all.filter(z=>H(z).sl).length,ne=all.filter(z=>z.st==='E'&&!H(z).h1).length;
-    put($('hsum'),all.length?`<div class="hsum"><div class="hs g2"><b>${n2}</b><span>Chạm TP2</span></div><div class="hs g1"><b>${n1}</b><span>Chạm TP1 = THẮNG</span></div><div class="hs gs"><b>${ns}</b><span>Chạm cắt lỗ</span></div><div class="hs ge"><b>${ne}</b><span>Cắt sớm trước TP1</span></div><div class="hs gx"><b>${nx}</b><span>Hết hạn / bỏ lệnh</span></div></div>`:'');
+    put($('hsum'),all.length?`<div class="hsum"><div class="hs g2"><b>${n2}</b><span>Chạm TP2</span></div><div class="hs g1"><b>${n1}</b><span>Chạm TP1 (≥ hòa vốn)</span></div><div class="hs gs"><b>${ns}</b><span>Chạm cắt lỗ</span></div><div class="hs ge"><b>${ne}</b><span>Cắt sớm trước TP1</span></div><div class="hs gx"><b>${nx}</b><span>Hết hạn / bỏ lệnh</span></div></div>`:'');
     put($('fl'),[['all','Tất cả',all.length],['closed','Đóng lệnh',nc],['tp2','🏆 Chạm TP2',n2],['tp1','✓ Chạm TP1',n1],['sl','✗ Chạm cắt lỗ',ns],['cancel','Hết hạn / Bỏ lệnh',nx]].map(([k,t,n])=>`<button data-flt="${k}"${this.flt===k?' class="on"':''}>${t} (${n})</button>`).join(''));
     const dn=Book.isDone,pct=z=>dn(z)?z.pnl/z.amt*100:0,pb=z=>dn(z)?z.pnl/B.bal(z)*100:0,sd=list.filter(dn),sNet=sd.reduce((a,z)=>a+z.pnl,0),sAmt=sd.reduce((a,z)=>a+z.amt,0),sPct=sAmt?sNet/sAmt*100:0;
     Tbl.render('hist',$('hist'),[
@@ -139,7 +139,7 @@ const BookPage={
       {k:'lev',h:'Đòn bẩy',v:z=>z.lev||1,f:levCell},
       {k:'entry',h:'Giá vào',v:z=>z.entry,f:z=>Fmt.px(z.entry)},
       {k:'exit',h:'Giá thoát',v:z=>z.exit||0,f:z=>z.exit!=null?Fmt.px(z.exit):'-'},
-      {k:'win',h:'Thắng / Thua',v:z=>dn(z)?(z.win?1:0):-1,f:z=>dn(z)?(H(z).h1?'<span class="wl w">THẮNG</span><span class="sub">đã chạm TP1</span>':`<span class="wl l">THUA</span><span class="sub">${z.st==='M'?'cắt tay trước TP1 · không tính vào chiến lược':'chưa chạm TP1'}</span>`):'-'},
+      {k:'win',h:'Thắng / BE / Thua',v:z=>({win:2,be:1,loss:0})[Book.res(z)]??-1,f:z=>{const r=Book.res(z);return r==='win'?'<span class="wl w">THẮNG</span><span class="sub">chạm TP2</span>':r==='be'?`<span class="wl be">HÒA VỐN (BE)</span><span class="sub">${H(z).h1?'TP1 rồi '+(z.st==='B'?'về giá vào':'cắt sớm'):'cắt sớm khi đang dương'}</span>`:r==='loss'?`<span class="wl l">THUA</span><span class="sub">${z.st==='S'?'chạm cắt lỗ':'cắt sớm khi đang âm'}</span>`:'-'}},
       {k:'st',h:'Kết quả',v:z=>ST[z.st],f:z=>`${this.goal(z)||`<span class="st ${z.st}">${ST[z.st]}</span>`}${z.why&&z.st!=='S'?`<span class="sub">${esc(z.why)}</span>`:''}`},
       {k:'prog',h:'Mốc đã chạm',v:z=>(H(z).h2?3:H(z).h1?2:H(z).sl?0:1),f:z=>dn(z)?this.rail(z,false):'-'},
       {k:'rr',h:'R',v:z=>dn(z)?z.rr:0,f:z=>dn(z)?`${z.rr>=0?'+':''}${z.rr.toFixed(2)}R`:'-'},
@@ -147,7 +147,7 @@ const BookPage={
       {k:'pm',h:'Lãi (+) / Lỗ (−)',v:z=>dn(z)?z.pnl:0,f:z=>dn(z)?B.chip(z.pnl,Fmt.sgn(z.pnl)):'-'},
       {k:'strat',h:'Chiến lược',v:z=>z.strat.name,f:z=>`<span class="sub">${esc(z.strat.name)}</span>`}
     ],list,{def:{k:'x',d:-1},attr:z=>{const h=H(z);return` data-oid="${z.id}" class="${h.h2?'r-tp2':h.h1?'r-tp1':h.sl?'r-sl':Book.isCancel(z)?'r-x':''}${this.open.has(z.id)?' open':''}"`},empty:'<div class="empty">Chưa có lệnh nào trong mục này.</div>',
-      foot:sd.length&&this.flt!=='cancel'?['Tổng','','',Fmt.usd(sAmt),'','','',`<b>${sd.filter(z=>z.win).length}/${sd.length}</b> thắng`,'','','',B.chip(sPct,Fmt.pct(sPct)),B.chip(sNet,Fmt.sgn(sNet)),'']:null});
+      foot:sd.length&&this.flt!=='cancel'?['Tổng','','',Fmt.usd(sAmt),'','','',`<b>${sd.filter(z=>Book.res(z)==='win').length}</b> thắng · <b>${sd.filter(z=>Book.res(z)==='be').length}</b> BE · <b>${sd.filter(z=>Book.res(z)==='loss').length}</b> thua`,'','','',B.chip(sPct,Fmt.pct(sPct)),B.chip(sNet,Fmt.sgn(sNet)),'']:null});
     this.toolbar();put($('actlog'),Book.data.log.length?Book.data.log.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.text)}</p>`).join(''):'<p class="mut">Chưa có hoạt động nào hôm nay.</p>');
     $('xlp').hidden=!Book.prev;if(Book.prev)$('xlp').textContent='Tải kết quả '+Book.prev.day.split('-').reverse().slice(0,2).join('/')},
 
@@ -189,7 +189,7 @@ const BookPage={
       sv(16,N(z),{num:f$},`N${r}*O${r}`);
       const q=N(z)*(Rp(z)+2*fee);sv(17,q,{num:f$},`P${r}*(ABS(I${r}-J${r})/I${r}+2*${PHI})`);
       sv(18,q/bal,{num:fP},`IFERROR(Q${r}/${VON},0)`);
-      sv(19,ST[z.st]);sv(20,grp(z),{h:'center'});sv(21,d?(z.win?'Thắng':'Thua'):'',{h:'center',b:1});sv(22,d?z.rr:null,{num:fR});
+      sv(19,ST[z.st]);sv(20,grp(z),{h:'center'});sv(21,d?Book.resText(z):'',{h:'center',b:1});sv(22,d?z.rr:null,{num:fR});
       sv(23,p,{num:fS,b:1},`IF(T${r}="Đóng lệnh",P${r}*(V${r}*ABS(I${r}-J${r})/I${r}-2*${PHI}),0)`);
       sv(24,z.amt?p/z.amt:0,{num:fSP},`IFERROR(W${r}/N${r},0)`);sv(25,p/bal,{num:fSP},`IFERROR(W${r}/${VON},0)`);
       if(d){sv(26,cum,{num:fS},`SUM($W$${r0}:W${r})`);sv(27,peak,{num:f$},i?`MAX(AA${r-1},Z${r})`:`MAX(0,Z${r})`);sv(28,peak-cum,{num:f$},`AA${r}-Z${r}`)}
@@ -223,14 +223,15 @@ const BookPage={
     lab('B7','Rủi ro mỗi lệnh (% vốn)');inp('C7',UI.risk()/100,fP);
     lab('B8','Phí mỗi chiều');inp('C8',fee,'0.000%');
     lab('B9','Số lệnh tối đa');inp('C9',UI.slots(),'0');
-    const cnt=(g,w)=>O.filter(z=>grp(z)===g&&(w==null||(z.win?'Thắng':'Thua')===w)).length;
-    const cl=cnt('Đóng lệnh'),win=cnt('Đóng lệnh','Thắng'),op=cnt('Đang mở'),cx=cnt('Bỏ lệnh');
+    const cnt=(g,w)=>O.filter(z=>grp(z)===g&&(w==null||Book.resText(z)===w)).length;
+    const cl=cnt('Đóng lệnh'),win=cnt('Đóng lệnh','Thắng'),bev=cnt('Đóng lệnh','Hòa vốn'),los=cnt('Đóng lệnh','Thua'),op=cnt('Đang mở'),cx=cnt('Bỏ lệnh');
     sec('B11','KẾT QUẢ LỆNH');
-    const KR=[['Số lệnh đã đặt',n,'0',`COUNTA(${col('E')})`],['Lệnh đã đóng',cl,'0',`COUNTIF(${col('T')},"Đóng lệnh")`],['Thắng (đạt TP1)',win,'0',`COUNTIFS(${col('T')},"Đóng lệnh",${col('U')},"Thắng")`],
-      ['Thua',cl-win,'0','C13-C14'],['Tỉ lệ thắng',cl?win/cl:0,fP,'IFERROR(C14/C13,0)'],['Đang mở',op,'0',`COUNTIF(${col('T')},"Đang mở")`],['Bỏ lệnh / hết hạn',cx,'0',`COUNTIF(${col('T')},"Bỏ lệnh")`],
-      ['Tổng ký quỹ đã vào lệnh',O.filter(z=>grp(z)!=='Bỏ lệnh').reduce((a,z)=>a+z.amt,0),f$,`SUMIF(${col('T')},"<>Bỏ lệnh",${col('N')})`]];
+    const KR=[['Số lệnh đã đặt',n,'0',`COUNTA(${col('E')})`],['Lệnh đã đóng',cl,'0',`COUNTIF(${col('T')},"Đóng lệnh")`],['Thắng (chạm TP2)',win,'0',`COUNTIFS(${col('T')},"Đóng lệnh",${col('U')},"Thắng")`],
+      ['Thua',los,'0',`COUNTIFS(${col('T')},"Đóng lệnh",${col('U')},"Thua")`],['Tỉ lệ thắng',cl?win/cl:0,fP,'IFERROR(C14/C13,0)'],['Đang mở',op,'0',`COUNTIF(${col('T')},"Đang mở")`],['Bỏ lệnh / hết hạn',cx,'0',`COUNTIF(${col('T')},"Bỏ lệnh")`],
+      ['Tổng ký quỹ đã vào lệnh',O.filter(z=>grp(z)!=='Bỏ lệnh').reduce((a,z)=>a+z.amt,0),f$,`SUMIF(${col('T')},"<>Bỏ lệnh",${col('N')})`],
+      ['Hòa vốn (BE)',bev,'0',`COUNTIFS(${col('T')},"Đóng lệnh",${col('U')},"Hòa vốn")`]];
     KR.forEach(([t,v,f,fx],i)=>{lab('B'+(12+i),t);val('C'+(12+i),v,f,fx,i===4?{color:C.teal}:{})});
-    const P=O.map(pnl),gain=P.filter(x=>x>0).reduce((a,x)=>a+x,0),loss=P.filter(x=>x<0).reduce((a,x)=>a+x,0),W1=O.filter(z=>isD(z)&&z.win),L1=O.filter(z=>isD(z)&&!z.win);
+    const P=O.map(pnl),gain=P.filter(x=>x>0).reduce((a,x)=>a+x,0),loss=P.filter(x=>x<0).reduce((a,x)=>a+x,0),W1=O.filter(z=>isD(z)&&Book.res(z)==='win'),L1=O.filter(z=>isD(z)&&Book.res(z)==='loss');
     const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,mdd=Math.max(0,...O.filter(isD).map((z,i,a)=>{let c2=0,pk=0,m=0;for(const y of a){c2+=pnl(y);pk=Math.max(pk,c2);m=Math.max(m,pk-c2)}return m}));
     const openRisk=O.filter(z=>grp(z)==='Đang mở'&&z.st!=='H').reduce((a,z)=>a+N(z)*(Rp(z)+2*fee),0);
     sec('E5','LÃI / LỖ');
@@ -245,7 +246,7 @@ const BookPage={
       ['Sụt vốn tối đa trong ngày',mdd,f$,`MAX(0,${col('AB')})`],['Rủi ro đang mở (nếu cùng chạm cắt lỗ)',openRisk,f$,`SUMIFS(${col('Q')},${col('T')},"Đang mở",${col('S')},"<>${ST.H}")`],['Rủi ro đang mở / vốn',openRisk/bal,fP,'IFERROR(F17/C6,0)']];
     QR.forEach(([t,v,f,fx],i)=>{lab('E'+(12+i),t);val('F'+(12+i),v,f,fx)});
     sec('B21','PHÂN BỔ KẾT QUẢ');
-    [['Thắng',win,'C14'],['Thua',cl-win,'C15'],['Bỏ / hết hạn',cx,'C18'],['Đang mở',op,'C17']].forEach(([t,v,fx],i)=>{lab('B'+(22+i),t);val('C'+(22+i),v,'0',fx)});
+    [['Thắng',win,'C14'],['Thua',los,'C15'],['Bỏ / hết hạn',cx,'C18'],['Đang mở',op,'C17'],['Hòa vốn (BE)',bev,'C20']].forEach(([t,v,fx],i)=>{lab('B'+(22+i),t);val('C'+(22+i),v,'0',fx)});
     // ---------- Sheet Theo coin ----------
     const coins=[...new Set(O.map(z=>Fmt.coin(z.s)))].sort(),K=W.sheet('Theo coin',{tab:'B7791F',freeze:'B5'});
     [12,14,10,12,14,15,14,13].forEach((w,i)=>K.width(i+1,w));
@@ -253,7 +254,7 @@ const BookPage={
     K.set('A2','Tự tính từ sheet Lệnh bằng COUNTIFS / SUMIFS.',st({i:1,color:C.mut})).merge('A2:H2');
     ['Coin','Lệnh đã đóng','Thắng','Tỉ lệ thắng','Ký quỹ đã vào','Lãi/Lỗ (USDT)','Lãi/Lỗ % ký quỹ','R trung bình'].forEach((h,i)=>K.set([4,i+1],h,st({b:1,color:'FFFFFF',fill:C.teal,h:'center',wrap:1,bd:'thin',bdc:'0B5F59'})));K.height(4,30);
     const cr=coins.map((cn,i)=>{
-      const r=5+i,zs=O.filter(z=>Fmt.coin(z.s)===cn),cl2=zs.filter(isD),w2=cl2.filter(z=>z.win).length,m2=zs.filter(z=>grp(z)!=='Bỏ lệnh').reduce((a,z)=>a+z.amt,0),p2=zs.reduce((a,z)=>a+pnl(z),0),band=i%2?{fill:C.band}:{},S2=(x={})=>st({bd:'bottom',bdc:'E5EAF0',...band,...x});
+      const r=5+i,zs=O.filter(z=>Fmt.coin(z.s)===cn),cl2=zs.filter(isD),w2=cl2.filter(z=>Book.res(z)==='win').length,m2=zs.filter(z=>grp(z)!=='Bỏ lệnh').reduce((a,z)=>a+z.amt,0),p2=zs.reduce((a,z)=>a+pnl(z),0),band=i%2?{fill:C.band}:{},S2=(x={})=>st({bd:'bottom',bdc:'E5EAF0',...band,...x});
       K.set([r,1],cn,S2({b:1}));
       K.set([r,2],cl2.length,S2({num:'0',h:'center'}),`COUNTIFS(${col('E')},A${r},${col('T')},"Đóng lệnh")`);
       K.set([r,3],w2,S2({num:'0',h:'center'}),`COUNTIFS(${col('E')},A${r},${col('T')},"Đóng lệnh",${col('U')},"Thắng")`);
@@ -270,8 +271,8 @@ const BookPage={
     if(k)S.chart({type:'line',title:'Lãi/lỗ lũy kế trong ngày (USDT)',from:'H5',to:'R21',fmt:'"$"#,##0',cat:{f:`${LK}!$AD$${r0}:$AD$${r0+k-1}`,v:O.slice(0,k).map(z=>`${Fmt.hm(z.x)} ${Fmt.coin(z.s)}`)},
       series:[{name:'Lũy kế',f:`${LK}!$Z$${r0}:$Z$${r0+k-1}`,v:(()=>{let c3=0;return O.slice(0,k).map(z=>c3+=pnl(z))})(),color:C.teal}]});
     else S.set('H6','Biểu đồ lãi/lỗ lũy kế sẽ có khi có lệnh đóng.',st({i:1,color:C.mut}));
-    S.chart({type:'doughnut',title:'Kết quả lệnh',from:'H23',to:'L40',legend:'b',cat:{f:`${TQ}!$B$22:$B$25`,v:['Thắng','Thua','Bỏ / hết hạn','Đang mở']},
-      series:[{name:'Số lệnh',f:`${TQ}!$C$22:$C$25`,v:[win,cl-win,cx,op],colors:['1A7F37','C62828','9AA5B1','D4A017']}]});
+    S.chart({type:'doughnut',title:'Kết quả lệnh',from:'H23',to:'L40',legend:'b',cat:{f:`${TQ}!$B$22:$B$26`,v:['Thắng','Thua','Bỏ / hết hạn','Đang mở','Hòa vốn (BE)']},
+      series:[{name:'Số lệnh',f:`${TQ}!$C$22:$C$26`,v:[win,los,cx,op,bev],colors:['1A7F37','C62828','9AA5B1','D4A017','2563EB']}]});
     if(coins.length)S.chart({type:'bar',title:'Lãi/lỗ theo coin (USDT)',from:'M23',to:'R40',fmt:'"$"#,##0.00',cat:{f:`'Theo coin'!$A$5:$A$${4+coins.length}`,v:cr.map(x=>x.cn)},
       series:[{name:'Lãi/lỗ',f:`'Theo coin'!$F$5:$F$${4+coins.length}`,v:cr.map(x=>x.p2),color:C.teal,colors:cr.map(x=>x.p2>=0?'1A7F37':'C62828')}]});
     // ---------- Nhật ký & Giải thích ----------

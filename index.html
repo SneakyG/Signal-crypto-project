@@ -75,7 +75,7 @@
   <div class="sec">Lịch sử lệnh đã đóng<span class="cnt" id="nh">0</span></div>
   <div id="hsum"></div><div class="fl" id="fl"></div><div id="hist"></div>
   <div class="sec">Hoạt động hôm nay</div><div class="log" id="actlog"></div>
-  <p class="foot">Lệnh đã khớp có lãi/lỗ chạy realtime (giá cập nhật 3 giây một lần); dòng đạt TP1 được tô xanh, cắt lỗ đã dời về giá vào nên rủi ro còn 0%. % lãi/lỗ tính trên ký quỹ (như ROE trên sàn), kèm % trên vốn. Khi lệnh đóng, lãi/lỗ được chốt và không đổi nữa. Lệnh tính là THẮNG khi đã chạm TP1 (chốt 50%, dời cắt lỗ về giá vào, phần còn lại chạy tới TP2); chưa chạm TP1 là THUA, kể cả khi cắt sớm có lãi nhỏ. Tỉ lệ thắng của chiến lược, tự học và backtest đều tính theo quy tắc này. Chiến lược tự cắt sớm khi hết hy vọng thắng và báo cho bạn. Qua ngày mới, lịch sử và thống kê tự xoá (lệnh đang mở vẫn được theo dõi). Lãi lỗ đã trừ phí 0,05% mỗi chiều. Bấm vào tiêu đề cột để sắp xếp. Bấm vào một dòng lệnh chờ hoặc đã khớp để xem lệnh trên biểu đồ (vùng Long/Short, Entry, SL, TP1, TP2).</p>
+  <p class="foot">Lệnh đã khớp có lãi/lỗ chạy realtime (giá cập nhật 3 giây một lần); dòng đạt TP1 được tô xanh, cắt lỗ đã dời về giá vào nên rủi ro còn 0%. % lãi/lỗ tính trên ký quỹ (như ROE trên sàn), kèm % trên vốn. Khi lệnh đóng, lãi/lỗ được chốt và không đổi nữa. 1R = vốn × rủi ro mỗi lệnh (1000$ × 5% = 50$). Chạm TP1 (+1,5R) chốt 50% = +37,5$ và dời cắt lỗ về giá vào; chạm TP2 (+3R) chốt 50% còn lại = +75$, tổng +112,5$ (+11,25% vốn). Kết quả: <b>THẮNG</b> = chạm TP2; <b>HÒA VỐN (BE)</b> = đã chạm TP1 rồi về giá vào hoặc bị cắt sớm, hay cắt sớm trước TP1 mà vẫn dương; <b>THUA</b> = chạm cắt lỗ hoặc cắt sớm khi đang âm. Tỉ lệ thắng của chiến lược, tự học và backtest đều tính theo quy tắc này. Chiến lược tự cắt sớm khi hết hy vọng thắng và báo cho bạn. Qua ngày mới, lịch sử và thống kê tự xoá (lệnh đang mở vẫn được theo dõi). Lãi lỗ đã trừ phí 0,05% mỗi chiều (phí tính riêng, ngoài 1R). Bấm vào tiêu đề cột để sắp xếp. Bấm vào một dòng lệnh chờ hoặc đã khớp để xem lệnh trên biểu đồ (vùng Long/Short, Entry, SL, TP1, TP2).</p>
 </section>
 
 <!-- ================= VĂN PHÒNG ================= -->
@@ -109,9 +109,9 @@
       <p><b>Mô hình một lệnh trong bảng này</b></p>
       <ul>
         <li><b>1R</b> = khoảng cách từ giá vào tới cắt lỗ. Cắt lỗ = −1R. TP1 = +1,5R, TP2 = +3R.</li>
-        <li>Chạm TP1: chốt 50% vị thế, dời cắt lỗ về giá vào. Từ lúc này lệnh không thể lỗ nữa và <b>được tính là lệnh THẮNG</b>.</li>
-        <li>Phần còn lại: chạm TP2 thì chốt hết (+2,25R tổng); quay về giá vào thì hòa vốn phần còn lại (+0,75R tổng).</li>
-        <li><b>Cắt sớm</b>: nếu chiến lược thấy hết hy vọng (khung lớn đảo chiều, mất động lượng, quá lâu không chạy) thì thoát tại giá đóng nến và báo cho bạn. Cắt sớm trước TP1 tính là THUA.</li>
+        <li>Chạm TP1 (+1,5R): chốt 50% vị thế (+0,75R, ví dụ 1R = 50$ thì +37,5$), dời cắt lỗ về giá vào. Từ lúc này lệnh không thể lỗ nữa (tối thiểu <b>hòa vốn – BE</b>).</li>
+        <li>Phần còn lại: chạm TP2 (+3R) thì chốt hết, cộng thêm +1,5R (+75$), tổng +2,25R (+112,5$) và tính là <b>THẮNG</b>; quay về giá vào thì phần còn lại hòa vốn, tổng +0,75R, tính là <b>HÒA VỐN (BE)</b>.</li>
+        <li><b>Cắt sớm</b>: nếu chiến lược thấy hết hy vọng (khung lớn đảo chiều, mất động lượng, quá lâu không chạy) thì thoát tại giá đóng nến và báo cho bạn. Cắt sớm trước TP1: còn dương là HÒA VỐN (BE), đang âm là THUA.</li>
         <li>Trong cùng một nến mà chạm cả cắt lỗ lẫn chốt lời thì tính là chạm cắt lỗ (bảo thủ, không tự khen).</li>
       </ul>
       <p><b>Ý nghĩa các con số</b></p>
@@ -160,9 +160,9 @@
   <section class="panel flow">
     <div class="steps">
       <div class="stp"><b>1</b><div><h3>Dùng và ghi kết quả</h3><p>Mỗi lệnh kết thúc (lệnh bạn đặt hoặc tín hiệu bảng đang theo dõi) được ghi vào phiên bản đã tạo ra nó.</p></div></div>
-      <div class="stp"><b>2</b><div><h3>Đủ 100 lệnh thì đánh giá</h3><p>Thắng ≥ 70/100: giữ nguyên. Thắng &lt; 70/100: tự học lại từ các lệnh thua.</p></div></div>
-      <div class="stp"><b>3</b><div><h3>Đạt 70% → lưu và học tiếp</h3><p>100 lệnh kiểm chứng thắng ≥ 70: lưu bản ✓70% rồi nhân bản học tiếp.</p></div></div>
-      <div class="stp"><b>4</b><div><h3>Đạt 90% → bản dự phòng</h3><p>Thắng ≥ 90/100: lưu bản ★90%. Cả ✓70% và ★90% chọn được ở Bảng tín hiệu.</p></div></div>
+      <div class="stp"><b>2</b><div><h3>Đủ 100 lệnh thì đánh giá</h3><p>Thua ≤ 30/100: giữ nguyên. Thua quá 30/100: tự học lại từ các lệnh thua. Thắng (TP2) và hòa vốn (BE) không tính là thua.</p></div></div>
+      <div class="stp"><b>3</b><div><h3>Đạt 70% → lưu và học tiếp</h3><p>100 lệnh kiểm chứng thua ≤ 30: lưu bản ✓70% rồi nhân bản học tiếp.</p></div></div>
+      <div class="stp"><b>4</b><div><h3>Đạt 90% → bản dự phòng</h3><p>Thua ≤ 10/100: lưu bản ★90%. Cả ✓70% và ★90% chọn được ở Bảng tín hiệu.</p></div></div>
     </div>
     <div class="row2" style="margin-top:12px"><label class="sw"><input type="checkbox" id="alon"><span></span>Tự học tự động</label><span class="mut" id="alst"></span><button class="ghost bx" id="alreset" style="margin-left:auto" title="Xóa kết quả đã ghi của mọi phiên bản, đếm lại từ 0/10">Đặt lại đếm thắng/thua (tất cả)</button></div>
   </section>
@@ -179,9 +179,10 @@
   </details>
   <section class="panel">
     <h2>Mô tả chi tiết các chiến lược</h2>
-    <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 03/11/2026): 598 lệnh, thắng (chạm TP1) 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn).</p>
+    <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 03/11/2026): 598 lệnh, chạm TP1 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn).</p>
     <p class="note"><b>BTC x100 · SMC/ICT hợp lưu:</b> chỉ BTC, khung 15m, đòn bẩy cố định x100. 1D/4h cho hướng. Chờ <b>quét thanh khoản</b> (đáy/đỉnh cũ, đáy/đỉnh ngày hôm trước, đáy/đỉnh phiên Á) → <b>phá cấu trúc có lực (MSS)</b> → đặt lệnh chờ ở <b>giữa FVG/OB</b> của nhịp phá. Cộng điểm khi có vùng Discount/Premium 4h, OTE 62–79%, kill zone London (14–17h VN) / New York (19–23h VN), <b>SMT phân kỳ với ETH</b> và volume nhịp phá. Cắt lỗ ngoài cú quét, tối đa 0,45% vì thanh lý x100 chỉ cách ≈ 0,6%. TP1 1,5R chốt 50%, dời cắt lỗ về giá vào, TP2 3R chốt hết. Vẫn giữ 1 lệnh thua = % vốn đã chọn.</p>
     <p class="note"><b>SMC / ICT:</b> 1D/4h cho hướng. Khung nhỏ tìm Order Block và Fair Value Gap chưa bị chạm sau khi cấu trúc bị phá (BOS/CHoCH), chỉ mua ở vùng Discount và bán ở vùng Premium, ưu tiên khi có quét thanh khoản. Lệnh chờ đặt giữa vùng, cắt lỗ ngoài vùng.</p>
+    <p class="note"><b>BTC Scalping · ICT / SMC (5m):</b> lướt sóng ngắn BTC theo mô hình ICT Silver Bullet. Hướng: EMA khung 1h và cấu trúc 15m cùng chiều. Chỉ vào lệnh trong <b>kill zone</b> London (14–17h VN) và New York (19–22h VN). Chờ <b>quét thanh khoản</b> (đáy/đỉnh swing gần hoặc của giờ trước) → <b>MSS có lực</b> → lệnh chờ ở giữa <b>FVG</b> của nhịp phá, bắt buộc nằm trong vùng <b>OTE 62–79%</b>. Cắt lỗ ngoài cú quét, tối thiểu 0,5% để phí sàn không ăn mất lợi thế. Lệnh chờ tối đa 30 phút và bỏ khi hết kill zone; MSS 5m đảo chiều hoặc 2 giờ chưa đi được 0,5R thì cắt sớm; giữ tối đa 3 giờ. <b>Kiểm chứng BTCUSDT Futures 104 ngày tới 04/11/2026</b>: 14 lệnh, 2 thắng / 7 hòa vốn / 5 thua (36%), +0,21R mỗi lệnh sau phí. Mẫu còn rất nhỏ, chưa đủ để khẳng định có lãi.</p>
   </section>
 </section>
 
@@ -243,6 +244,7 @@
 <script src="js/strategies/ema.js"></script>
 <script src="js/strategies/rsi2.js"></script>
 <script src="js/strategies/btc100.js"></script>
+<script src="js/strategies/scalp.js"></script>
 <script src="js/trading/lifecycle.js"></script>
 <script src="js/trading/backtest.js"></script>
 <script src="js/trading/sizing.js"></script>

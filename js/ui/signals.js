@@ -70,7 +70,7 @@ const Sig={
       const first=!sd[s];sd[s]=true;if(!x.tr)continue;
       const L=x.tr.L,sigT=x.D.t[x.tr.i],id=`${s}|${tf}|${x.v.id}|${sigT}`,pv=this.seen[id];this.seen[id]=L.st;
       if(first||pv===L.st)continue;
-      if(Book.isDone(L))AutoLab.rec(x.v.id,`${s}|${sigT}|${x.v.id}`,L.win,L.rr,'tín hiệu theo dõi');
+      if(Book.isDone(L))AutoLab.rec(x.v.id,`${s}|${sigT}|${x.v.id}`,L.win,L.rr,'tín hiệu theo dõi',L.res);
       if(Book.data.orders.some(o=>o.s===s&&o.sigT===sigT))continue; // lệnh của bạn đã có thông báo riêng
       const nm=`${Fmt.coin(s)} ${x.tr.sig.side}`,W=x.v.params.W||3;
       if(pv===undefined&&L.st==='P'){
@@ -81,7 +81,7 @@ const Sig={
         Notify.push('signal',`Tín hiệu <b>${nm}</b> bị bỏ: ${L.why}`,`❌ BỎ LỆNH CHỜ ${nm} (${tf})\nLý do: ${L.why}. Hủy lệnh limit ${Fmt.px(L.e)} trên sàn nếu bạn đã đặt.`,'dn')}},
   kpi(p){
     const S=Book.stats(Book.data.orders),bal=UI.bal()||1;
-    tween($('k-risk'),p.tot,v=>'$'+v.toFixed(2));$('k-risk2').textContent=`${UI.risk()}% vốn khi chạm cắt lỗ (đã gồm phí)`;
+    tween($('k-risk'),p.tot,v=>'$'+v.toFixed(2));$('k-risk2').textContent=`1R = ${UI.risk()}% vốn khi chạm cắt lỗ (phí sàn ≈ $${(p.fee||0).toFixed(2)} tính riêng)`;
     tween($('k-per'),p.A,v=>'$'+v.toFixed(2));$('k-per2').textContent=p.none?'Hết ký quỹ trống: đợi lệnh đóng hoặc hủy lệnh chờ':`≈ ${(p.A/bal*100).toFixed(1)}% vốn, vị thế ≈ $${p.notional.toFixed(0)}${p.capped?' (giảm vì thiếu ký quỹ trống)':''}`;
     tween($('k-lev'),p.lev,v=>Math.round(v)+'×');$('k-lev').className=p.lev>=50?'dn':p.lev>20?'warn':'';
     $('k-lev2').textContent=Strat.isAuto()||!Strat.P().fixLev?`Tính từ cắt lỗ ≈ ${(p.ref*100).toFixed(2)}%: mức thấp nhất vừa ngân sách, thanh lý ≥ 2 lần cắt lỗ`:`Cố định theo chiến lược, thanh lý cách ≈ ${(p.liqDist*100).toFixed(2)}%`;
@@ -95,12 +95,12 @@ const Sig={
   // Khối thông tin khối lượng trên thẻ (được cập nhật ngay khi gõ số tiền)
   sizeHtml(s,z){
     const warn=z.none?`<p class="wn dn">⚠ Hết ký quỹ trống (đã giữ $${(UI.bal()-z.avail).toFixed(2)} / $${UI.bal()} vốn). Đợi lệnh đóng hoặc hủy bớt lệnh chờ.</p>`
-      :z.room?`<p class="wn">Chỉ còn $${z.avail.toFixed(2)} ký quỹ trống nên vị thế bị giảm: thua chỉ mất ${z.lossPct.toFixed(1)}% vốn thay vì ${UI.risk()}%.</p>`
+      :z.room?`<p class="wn">Chỉ còn $${z.avail.toFixed(2)} ký quỹ trống nên vị thế bị giảm: thua chỉ mất ${z.lossPct.toFixed(1)}% vốn thay vì ${UI.risk()}% (chưa tới 1R). <b>Tự động đặt lệnh sẽ bỏ qua lệnh này.</b></p>`
       :z.liqBeforeSL?`<p class="wn dn">⚠ Thanh lý (${Fmt.px(z.liq)}) nằm trước cắt lỗ. Giảm đòn bẩy hoặc bỏ qua lệnh này.</p>`
       :z.capped?`<p class="wn">Ký quỹ đã giới hạn bằng toàn bộ vốn, nên thua chỉ mất ${z.lossPct.toFixed(1)}% vốn thay vì ${UI.risk()}%.</p>`
       :z.levCut?`<p class="wn">Đòn bẩy dừng ở ${z.lev}× để thanh lý cách giá vào ≥ 2 lần cắt lỗ, nên ký quỹ cao hơn ngân sách $${z.budget.toFixed(2)}.</p>`
       :`<p class="wn ok">Đòn bẩy ${z.lev}× = mức thấp nhất để ký quỹ vừa ngân sách $${z.budget.toFixed(2)}; thanh lý cách ${(z.liqDist*100).toFixed(2)}%, xa hơn ${(z.liqDist/z.sl).toFixed(1)} lần khoảng cắt lỗ ${(z.sl*100).toFixed(2)}%.</p>`;
-    return`<div class="szg"><div><i>Đòn bẩy</i><b>${z.lev}×</b></div><div><i>Giá trị vị thế</i><b>$${z.notional.toFixed(0)}</b></div><div><i>Thua nếu cắt lỗ</i><b class="dn">−$${z.loss.toFixed(2)}</b><span class="sub">${z.lossPct.toFixed(1)}% vốn</span></div><div><i>Giá thanh lý ≈</i><b>${Fmt.px(z.liq)}</b><span class="sub">cách ${(z.liqDist*100).toFixed(2)}%</span></div></div>${warn}`},
+    return`<div class="szg"><div><i>Đòn bẩy</i><b>${z.lev}×</b></div><div><i>Giá trị vị thế</i><b>$${z.notional.toFixed(0)}</b></div><div><i>Thua nếu cắt lỗ</i><b class="dn">−$${z.loss.toFixed(2)}</b><span class="sub">${z.lossPct.toFixed(1)}% vốn · phí ≈ $${(z.fee||0).toFixed(2)}</span></div><div><i>Giá thanh lý ≈</i><b>${Fmt.px(z.liq)}</b><span class="sub">cách ${(z.liqDist*100).toFixed(2)}%</span></div></div>${warn}`},
   cardItem(s,p){
     const x=this.state[s],{sig,L}=x.tr,coin=Fmt.coin(s),pill=(t,c)=>`<span class="badge ${c}">${t}</span>`,
       mine=Book.openFor(s),z=this.size(s,+this.amts[s]||0),up=x.spark[x.spark.length-1]>=x.spark[0],W=x.v.params.W||3,cls=L.st==='H'?'F':L.st;
@@ -131,7 +131,7 @@ const Sig={
     const tpl=`<article class="mini"><div class="mh"><b>${coinLink(s,x.tf)}</b><small>/USDT</small><span class="px" data-live="p:${s}">%PX%</span></div>${spark(x.spark,up?'up':'dn',240,34)}
       <div class="mf"><span class="badge ${done?tr.sig.side:old?a.side:''}">${done?ST[L.st]:old?a.side+' · cũ':'Chờ tín hiệu'}</span>${this.meter(a)}</div>
       <small class="mut">${a.score}/${a.checks.length} điều kiện (${a.dir}). ${esc(txt)}</small>
-      <div class="mfoot"><span class="stg">${esc(Strat.label(x.v))}</span><button class="bx ghost why" data-why="${s}">Vì sao chưa có lệnh?</button></div></article>`;
+      <div class="mfoot"><span class="stg">${esc(Strat.label(x.v))}</span><span class="mbt"><button class="bx ghost" data-watchchart="${s}">📈 Phân tích</button><button class="bx ghost why" data-why="${s}">Vì sao chưa có lệnh?</button></span></div></article>`;
     return{k:s,tpl,px:x.price}},
   // Giải thích chi tiết vì sao coin chưa có lệnh chờ
   explain(s){
@@ -189,6 +189,7 @@ const Sig={
     if(mk&&d*(px-L.e)/L.R>=P0.tp1R*0.8){say(`Giá đã chạy gần tới TP1 của tín hiệu (vào lúc ${Fmt.hm(x.D.t[x.tr.L.fill]+Data.MS[x.tf])}). Vào bây giờ là đuổi giá, bảng không ghi nhận lệnh này.`,'dn');return}
     const z=Sizing.trade({s,bal:UI.bal(),risk:UI.risk(),slots:UI.slots(),entry:lv.e,sl:lv.sl,dir:d,fixLev:x.v.params.fixLev,margin:m,avail:UI.bal()-Book.marginUsed()});
     if(z.none){say(`Hết ký quỹ trống: các lệnh đang mở đã giữ $${Book.marginUsed().toFixed(2)} / $${UI.bal()} vốn. Đợi lệnh đóng hoặc hủy lệnh chờ.`,'dn');return}
+    if(auto&&!z.full)return; // tự động: ký quỹ trống chỉ đủ một vị thế thua chưa tới 1R → không đặt
     if(z.liqBeforeSL){say('Giá thanh lý nằm trước cắt lỗ, không đặt lệnh này.','dn');return}
     if(Book.marginUsed()+z.margin>UI.bal()+1e-6){say('Tổng ký quỹ sẽ vượt vốn, không đặt lệnh này.','dn');return}
     const v=x.v,P=x.P||v.params;
@@ -223,6 +224,7 @@ const Sig={
     m.addEventListener('click',e=>{
       const b=e.target.closest&&e.target.closest('[data-place]');if(b){this.place(b.dataset.place,b);return}
       const c=e.target.closest&&e.target.closest('[data-sigchart]');if(c){ChartView.signal(c.dataset.sigchart);return}
+      const wc=e.target.closest&&e.target.closest('[data-watchchart]');if(wc){ChartView.watch(wc.dataset.watchchart);return}
       const w=e.target.closest&&e.target.closest('[data-why]');if(w)this.explain(w.dataset.why)});
     for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();this.amts={};this.render()});
     $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});

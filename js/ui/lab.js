@@ -21,13 +21,13 @@ const Lab={
   renderLog(){put($('llog'),AutoLab.lines.length?AutoLab.lines.map(l=>`<p><time>${Fmt.hm(l.t)}</time>${esc(l.m)}</p>`).join(''):'<p class="mut">Chưa có hoạt động. Bảng sẽ ghi lại mỗi lần đánh giá 100 lệnh và mỗi lần tự học.</p>')},
   card(base){
     const im=Strat.impl[base],vs=Strat.list.filter(v=>v.base===base).sort((a,b)=>a.ver-b.ver),used=v=>Strat.active===v.id||(Strat.isAuto()&&Object.values(Scan.best).includes(v.id));
-    const st={base:['Bản gốc',''],learning:['Đang học','P'],saved70:['✓ Đạt 70%','F'],saved90:['★ Đạt 90%','T']};
-    const ver=v=>{const s=AutoLab.stats(v),busy=AutoLab.running===v.id||(AutoLab.running&&Strat.byId(AutoLab.running)&&Strat.byId(AutoLab.running).parent===v.id),q=AutoLab.queue.includes(v.id),pct=s.last?s.w/s.last*100:0;
+    const st={base:['Bản gốc',''],learning:['Đang học','P'],saved70:['✓ Thua ≤ 30%','F'],saved90:['★ Thua ≤ 10%','T']};
+    const ver=v=>{const s=AutoLab.stats(v),busy=AutoLab.running===v.id||(AutoLab.running&&Strat.byId(AutoLab.running)&&Strat.byId(AutoLab.running).parent===v.id),q=AutoLab.queue.includes(v.id),pct=s.last?s.ls/s.last*100:0;
       return`<div class="vn ${st[v.status][1]}${used(v)?' use':''}">
         <div class="vh"><b>v${v.ver}</b><span class="st ${st[v.status][1]}">${st[v.status][0]}</span>${used(v)?'<span class="tag up">đang dùng</span>':''}</div>
         <div class="vbar"><i style="width:${Math.min(100,s.fresh/Strat.N*100)}%"></i></div>
-        <small class="tot">${s.total?`Đã ghi ${s.total} lệnh · thắng ${s.all}/${s.total} (${(s.all/s.total*100).toFixed(0)}%)`:'Chưa ghi lệnh nào'}</small>
-        <small>${v.status==='learning'?esc(v.stats?`Kiểm chứng: ${Strat.N} lệnh cuối thắng ${v.stats.last10}/${v.stats.n10}, tỉ lệ thắng ${v.stats.va.win.toFixed(0)}%`:'Đang được bộ học tinh chỉnh'):`${Math.min(s.fresh,Strat.N)}/${Strat.N} lệnh mới · ${s.last} lệnh gần nhất thắng <b class="${pct>=70?'up':s.last?'dn':''}">${s.w}/${s.last}</b>`}</small>
+        <small class="tot">${s.total?`Đã ghi ${s.total} lệnh · thắng ${s.all} · thua ${s.allLs} (${(s.allLs/s.total*100).toFixed(0)}%)`:'Chưa ghi lệnh nào'}</small>
+        <small>${v.status==='learning'?esc(v.stats?`Kiểm chứng: ${v.stats.n10} lệnh cuối thua ${v.stats.n10-v.stats.last10}`:'Đang được bộ học tinh chỉnh'):`${Math.min(s.fresh,Strat.N)}/${Strat.N} lệnh mới · ${s.last} lệnh gần nhất thua <b class="${pct<=30?'up':'dn'}">${s.ls}/${s.last}</b> (tối đa 30)`}</small>
         ${busy?'<small class="warn">⏳ Đang tự học…</small>':q?'<small class="warn">Trong hàng chờ tự học</small>':''}
         <div class="vact">${v.status!=='learning'&&Strat.active!==v.id?`<button class="bx" data-use="${v.id}">Dùng</button>`:''}<button class="bx ghost" data-learn="${v.id}">Học ngay</button>${s.total?`<button class="bx ghost" data-reset="${v.id}" title="Xóa các kết quả đã ghi, đếm lại từ 0/100">Đặt lại đếm</button>`:''}${v.status!=='base'?`<button class="bx ghost dn" data-del="${v.id}">Xóa</button>`:''}</div></div>`};
     return`<div class="lcard"><div class="lch"><h2>${esc(im.name)}</h2><span class="mut">${im.tf?'Khung '+im.tf:''}${im.only?' · chỉ '+im.only.map(Fmt.coin).join(', '):''}</span></div>

@@ -86,5 +86,32 @@ const Draw={
       out.notes[4]=`Đường trắng nét đứt: cân bằng 50% của khung 4h. ${lg?'Giá vào LONG phải nằm dưới':'Giá vào SHORT phải nằm trên'} đường này.`}
     out.items.push({type:'mk',n:a.checks[7][1]?'SMT ✓':'SMT ✗',c:C.smt,j:sw.k,up:lg,shape:'circle',ck:7});
     out.notes[7]='Mốc tím tại điểm quét: BTC tạo đáy/đỉnh mới nhưng ETH thì không (phân kỳ SMT).'},
+  scalp(D,i,P,a,out,impl){
+    const S=Strat.impl.smc.prep(D,{k:P.k,fvgMin:P.fvgMin}),X=impl.prep(D),I=Ind.prep(D),dirN=a.dirN,lg=dirN>0,C=this.C,last=D.c.length-1,step=D.t[1]-D.t[0];
+    out.notes[0]='Dải màu dưới đáy: xu hướng 4h/1D (tham khảo). Điều kiện thật: EMA20/EMA50 khung 1h và cấu trúc 15m (dựng từ nến 5m) phải cùng chiều.';
+    const lo0=Math.min(...D.l.slice(Math.max(0,i-150))),hi0=Math.max(...D.h.slice(Math.max(0,i-150)));
+    for(let j=Math.max(1,i-150);j<=last;j++){if(impl.inKZ(D.t[j]+step)&&!impl.inKZ(D.t[j-1]+step)){let e=j;while(e+1<=last&&impl.inKZ(D.t[e+1]+step))e++;
+      out.items.push({type:'box',n:new Date(D.t[j]+step).getUTCHours()<11?'London':'New York',c:C.kz,a:j,b:e,lo:lo0,hi:hi0,op:.05,ck:j<=i&&i<=e?1:null,bg:true});j=e}}
+    out.notes[1]='Dải dọc xanh nhạt: kill zone London (14–17h VN) và New York (19–22h VN). Nến tín hiệu phải nằm trong dải.';
+    const sw=impl.sweep(D,i,lg,S,X,P.look);
+    out.notes[2]=`Mốc hồng: nến quét qua ${lg?'đáy':'đỉnh'} swing gần nhất hoặc ${lg?'đáy':'đỉnh'} của giờ trước rồi đóng cửa quay lại, trong ${P.look} nến gần nhất.`;
+    if(sw.k<0){out.notes[3]='Chưa có cú quét nên chưa xét phá cấu trúc.';return}
+    out.items.push({type:'mk',n:'Quét · '+sw.src,c:C.sweep,j:sw.k,up:!lg,shape:'square',ck:2});
+    out.items.push({type:'hl',n:'Mức thanh khoản bị quét',c:C.sweep,a:Math.max(0,sw.k-12),b:Math.min(last,sw.k+6),p:sw.lvl,dash:2,ck:2});
+    const lvl=lg?S.hiAt[sw.k]:S.loAt[sw.k];let m=-1;for(let j=sw.k+1;j<=i;j++)if(isFinite(lvl)&&(lg?D.c[j]>lvl:D.c[j]<lvl)){m=j;break}
+    if(isFinite(lvl))out.items.push({type:'hl',n:'Mức cấu trúc cần phá',c:C.mss,a:Math.max(0,sw.k-10),b:m>0?m:last,p:lvl,dash:2,ck:3});
+    if(m>0){out.items.push({type:'mk',n:'MSS',c:C.mss,j:m,up:lg,shape:lg?'arrowUp':'arrowDown',ck:a.checks[3][1]?3:null});
+      out.items.push({type:'mk',n:`Vol ×${(D.v[m]/(I.vol[m]||1)).toFixed(1)}`,c:C.vol,j:m,up:!lg,shape:'circle',ck:6})}
+    out.notes[3]=m>0?'Đường vàng: đỉnh/đáy cấu trúc 5m; mũi tên MSS là nến đóng cửa phá qua (cần thân ≥ 1,2 ATR hoặc để lại FVG).':'Đường vàng: mức cấu trúc giá cần đóng cửa phá qua. Chưa phá.';
+    out.notes[6]='Mốc cam: volume nến phá so với trung bình 20 nến (cần ≥ '+P.volMin+'×).';
+    let z=null;for(let q=S.zones.length-1;q>=0;q--){const Z=S.zones[q];if(Z.born>i)continue;if(Z.born<sw.k)break;if(Z.type==='FVG'&&Z.side===dirN&&(Z.mit==null||Z.mit>i)&&(lg?Z.mid<D.c[i]:Z.mid>D.c[i])){z=Z;break}}
+    if(z){out.items.push({type:'box',n:'FVG chưa lấp',c:C.zone,a:z.born,b:last,lo:z.lo,hi:z.hi,op:.22,ck:4});out.items.push({type:'hl',n:'CE (giữa FVG) = giá vào',c:'#e5e7eb',a:z.born,b:last,p:z.mid,dash:1,ck:4})}
+    out.notes[4]=z?'Hộp tím: FVG sinh ra trong nhịp phá, chưa bị lấp. Lệnh chờ đặt ở giữa FVG (CE).':'Chưa có FVG chưa lấp trong nhịp phá.';
+    let ext=lg?Infinity:-Infinity,leg=lg?-Infinity:Infinity;for(let j=sw.k;j<=i;j++){ext=lg?Math.min(ext,D.l[j]):Math.max(ext,D.h[j]);leg=lg?Math.max(leg,D.h[j]):Math.min(leg,D.l[j])}
+    if(isFinite(ext)&&isFinite(leg)&&leg!==ext){const eq=(ext+leg)/2,p1=leg-(leg-ext)*0.62,p2=leg-(leg-ext)*0.79;
+      out.items.push({type:'hl',n:'Cân bằng 50% của nhịp',c:C.eq,a:sw.k,b:last,p:eq,dash:2,ck:5});
+      out.items.push({type:'box',n:'OTE 62–79%',c:C.ote,a:sw.k,b:last,lo:Math.min(p1,p2),hi:Math.max(p1,p2),op:.1,ck:7});
+      out.notes[5]=`Đường trắng nét đứt: 50% của nhịp từ cú quét tới đỉnh/đáy nhịp phá. ${lg?'LONG vào dưới':'SHORT vào trên'} đường này (Discount/Premium).`;
+      out.notes[7]='Hộp xanh ngọc: vùng OTE 62–79% của nhịp. Bản mặc định bắt buộc giá vào nằm trong vùng này.'}},
   ema(D,i,P,a,out){const I=Ind.prep(D),C=this.C;out.items.push({type:'line',n:'EMA20',c:C.ma2,v:I.e20,w:1},{type:'line',n:'EMA50',c:C.ma,v:I.e50,w:1},{type:'line',n:'EMA200',c:C.prem,v:I.e200,w:2})}
 };

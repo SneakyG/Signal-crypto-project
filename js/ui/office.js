@@ -27,16 +27,16 @@ const Office={
      job:'Theo dõi các coin dùng RSI(2): chờ RSI(2) cực đoan đúng chiều xu hướng 4h/1D, giá cùng phía SMA200 (khung 1h).'},
     {id:'smc',room:'ana',name:'Anh Minh SMC',role:'Chuyên viên SMC / ICT',go:'main',look:{hair:'#4b2e1e',skin:'#e0ac69',shirt:'#8b5cf6',acc:'glasses'},screen:'zone',
      job:'Tìm vùng Order Block / FVG chưa chạm sau khi phá cấu trúc, ưu tiên vùng Discount/Premium và có quét thanh khoản.'},
-    {id:'btc100',room:'ana',name:'Xạ thủ Bảo',role:'Xạ thủ BTC x100',go:'main',look:{hair:'#0f172a',skin:'#c68642',shirt:'#ef4444',acc:'cap',capc:'#111827'},screen:'scope',
+    {id:'btc100',room:'ana',name:'Xạ thủ Bảo',role:'Xạ thủ BTC x100 & Scalp',go:'main',look:{hair:'#0f172a',skin:'#c68642',shirt:'#ef4444',acc:'cap',capc:'#111827'},screen:'scope',
      job:'Chỉ bắn BTC khung 15m, đòn bẩy 100x: cần quét thanh khoản, phá cấu trúc có lực, FVG/OB chưa lấp, cắt lỗ rất hẹp.'},
     {id:'trader',room:'desk',name:'Bé Lan Đặt Lệnh',role:'Nhân viên đặt lệnh',go:'book',look:{hair:'#7c2d12',skin:'#f1c27d',shirt:'#22c55e',acc:'headset'},screen:'orders',
      job:'Ghi nhận lệnh vào Sổ lệnh (bấm tay hoặc tự động), theo dõi khớp lệnh realtime 3 giây/lần. Không gửi lệnh lên sàn.'},
     {id:'risk',room:'desk',name:'Chú Hùng Rủi Ro',role:'Quản lý rủi ro',go:'main',look:{hair:'#9ca3af',skin:'#e0ac69',shirt:'#1f2937',tie:'#ef4444',acc:'glasses'},screen:'gauge',
      job:'Giữ tổng ký quỹ không vượt vốn, mỗi lệnh thua tối đa đúng % rủi ro đã đặt, thanh lý luôn xa hơn cắt lỗ.'},
     {id:'acc',room:'desk',name:'Cô Mai Kế Toán',role:'Kế toán',go:'book',look:{hair:'#1f2937',skin:'#f6d0b1',shirt:'#e5e7eb',tie:'#0ea5e9',acc:'bun'},screen:'pnl',
-     job:'Tính lãi/lỗ realtime, chốt sổ khi lệnh đóng, đếm thắng (chạm TP1) / thua, xuất Excel và khóa sổ khi qua ngày.'},
+     job:'Tính lãi/lỗ realtime, chốt sổ khi lệnh đóng, đếm thắng (chạm TP2) / hòa vốn (BE) / thua, xuất Excel và khóa sổ khi qua ngày.'},
     {id:'lab',room:'lab',name:'Giáo sư Tuấn',role:'Trưởng phòng Tự học',go:'lab',look:{hair:'#e5e7eb',skin:'#f1c27d',shirt:'#e5e7eb',tie:'#7c3aed',acc:'coat glasses'},screen:'flask',
-     job:`Ghi kết quả từng lệnh cho mỗi phiên bản chiến lược; đủ ${Strat.N} lệnh mà thắng dưới 70% thì tự học lại, đạt mốc thì lưu bản ✓70% / ★90%.`},
+     job:`Ghi kết quả từng lệnh cho mỗi phiên bản chiến lược; đủ ${Strat.N} lệnh mà thua quá 30 thì tự học lại, đạt mốc thì lưu bản ✓70% / ★90%.`},
     {id:'calib',room:'lab',name:'Kỹ sư Phát',role:'Kỹ sư SL/TP',go:'set',look:{hair:'#3b2a1a',skin:'#c68642',shirt:'#f97316',acc:'helmet'},screen:'tune',
      job:'Tinh chỉnh cắt lỗ và TP2 (3–4R) theo thống kê riêng từng coin; chỉ dùng khi kết quả mới nhất cũng tốt hơn bản gốc.'},
     {id:'news',room:'comm',name:'Phóng viên Thảo',role:'Phóng viên tin tức',go:'news',look:{hair:'#b45309',skin:'#f6d0b1',shirt:'#ec4899',acc:'beret'},screen:'news',
@@ -60,8 +60,8 @@ const Office={
         return{st:Scan.at?'ok':'idle',say:Scan.at?`Xong! ${Sig.focus.length} coin tốt nhất: ${Sig.focus.slice(0,4).map(C).join(', ')}${Sig.focus.length>4?'…':''}`:'Chờ lượt quét đầu tiên…',
           kv:[['Coin quét',n],['Đang theo dõi',Sig.focus.length],['Quét lại lúc',Scan.at?Fmt.hm(Scan.at+3e5):'-']]}}
       case'rsi2':case'smc':case'btc100':{
-        const cs=this.coinsOf(id),sg=this.sigOf(cs),go=sg.filter(s=>Sig.canPlace(s));
-        if(!cs.length)return{st:'idle',say:id==='btc100'?'Chỉ làm việc khi chọn chiến lược BTC x100 cho BTC 15m. Đang nghỉ.':'Hiện không coin nào giao cho tôi.',kv:[['Coin phụ trách',0]]};
+        const cs=[...new Set([...this.coinsOf(id),...(id==='btc100'?this.coinsOf('scalp'):[])])],sg=this.sigOf(cs),go=sg.filter(s=>Sig.canPlace(s));
+        if(!cs.length)return{st:'idle',say:id==='btc100'?'Chỉ làm việc khi chọn BTC x100 (15m) hoặc BTC Scalp ICT (5m). Đang nghỉ.':'Hiện không coin nào giao cho tôi.',kv:[['Coin phụ trách',0]]};
         if(go.length)return{st:'happy',say:`Có kèo! ${go.map(s=>`${C(s)} ${Sig.state[s].tr.sig.side}`).join(', ')} đặt được ngay.`,kv:[['Coin phụ trách',cs.map(C).join(', ')],['Tín hiệu',sg.length],['Đặt được ngay',go.length]]};
         if(sg.length)return{st:'busy',say:`Đang canh ${sg.map(C).join(', ')}: tín hiệu đã có lệnh hoặc chưa đủ điều kiện vào.`,kv:[['Coin phụ trách',cs.map(C).join(', ')],['Tín hiệu',sg.length]]};
         const best=cs.map(s=>({s,x:Sig.state[s]})).filter(o=>o.x&&o.x.ok&&o.x.an).sort((a,b)=>b.x.an.score-a.x.an.score)[0];
@@ -75,9 +75,9 @@ const Office={
         if(mp>=90||rp>=25)return{st:'alert',say:`Cẩn thận! ${mp>=90?`Ký quỹ đã dùng ${mp.toFixed(0)}% vốn.`:`Nếu mọi lệnh chạm cắt lỗ sẽ mất ${rp.toFixed(1)}% vốn.`}`,kv};
         return{st:open.length?'busy':'ok',say:open.length?`Ổn. Ký quỹ ${mp.toFixed(0)}% vốn, rủi ro mở ${rp.toFixed(1)}%.`:'Vốn an toàn, chưa có rủi ro mở.',kv}}
       case'acc':{const S=Book.stats(Book.data.orders),lv=Book.data.orders.filter(Book.isFilled).map(o=>Book.live(o)).filter(Boolean).reduce((a,x)=>a+x.pnl,0);
-        const kv=[['Đã chốt hôm nay',Fmt.sgn(S.net)],['Đang chạy (tạm tính)',Fmt.sgn(lv)],['Thắng / thua',`${S.w} / ${S.l}`],['Tỉ lệ thắng',S.rate.toFixed(0)+'%']];
+        const kv=[['Đã chốt hôm nay',Fmt.sgn(S.net)],['Đang chạy (tạm tính)',Fmt.sgn(lv)],['Thắng / BE / thua',`${S.w} / ${S.be} / ${S.l}`],['Tỉ lệ thắng',S.rate.toFixed(0)+'%']];
         if(!S.cl&&!lv)return{st:'idle',say:'Sổ hôm nay còn trống.',kv};
-        return{st:S.net+lv>=0?'happy':'busy',say:`Hôm nay ${Fmt.sgn(S.net)} đã chốt, ${Fmt.sgn(lv)} đang chạy. Thắng ${S.w}, thua ${S.l}.`,kv}}
+        return{st:S.net+lv>=0?'happy':'busy',say:`Hôm nay ${Fmt.sgn(S.net)} đã chốt, ${Fmt.sgn(lv)} đang chạy. Thắng ${S.w}, hòa vốn ${S.be}, thua ${S.l}.`,kv}}
       case'lab':{const vs=Strat.list.filter(v=>v.status!=='learning'),best=vs.map(v=>({v,s:AutoLab.stats(v)})).sort((a,b)=>b.s.fresh-a.s.fresh)[0];
         const kv=[['Tự học tự động',AutoLab.on?'bật':'tắt'],['Hàng chờ',AutoLab.queue.length],['Tiến độ cao nhất',best?`${Strat.label(best.v)}: ${Math.min(best.s.fresh,Strat.N)}/${Strat.N}`:'-'],['Bản đã lưu',Strat.list.filter(v=>v.status==='saved70'||v.status==='saved90').length]];
         if(AutoLab.running){const v=Strat.byId(AutoLab.running);return{st:'busy',say:`Đang tự học ${v?Strat.label(v):''}… ${AutoLab.lines[0]?AutoLab.lines[0].m.slice(0,70):''}`,kv}}
@@ -127,7 +127,7 @@ const Office={
       if(d.dataset.st!==r.st){d.dataset.st=r.st}
       const b=d.querySelector('.of-bub span');if(b.textContent!==r.say)b.textContent=r.say;m.last=r}
     const S=Book.stats(Book.data.orders),open=Book.data.orders.filter(Book.isOpen).length;
-    put($('ofkpi'),`<span>💰 ${Fmt.sgn(S.net)}</span><span>📂 ${open} lệnh mở</span><span>🏆 ${S.w} thắng · ${S.l} thua</span><span>👥 ${this.TEAM.filter(m=>m.last&&(m.last.st==='busy'||m.last.st==='happy')).length}/${this.TEAM.length} đang làm</span>`);
+    put($('ofkpi'),`<span>💰 ${Fmt.sgn(S.net)}</span><span>📂 ${open} lệnh mở</span><span>🏆 ${S.w} thắng · ${S.be} BE · ${S.l} thua</span><span>👥 ${this.TEAM.filter(m=>m.last&&(m.last.st==='busy'||m.last.st==='happy')).length}/${this.TEAM.length} đang làm</span>`);
     $('ofclock').textContent='Ca trực '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});this.sky();
     const L=Book.data.log.slice(0,10),sig=L.map(l=>l.t).join();
     if(sig!==this.prevLog){this.prevLog=sig;

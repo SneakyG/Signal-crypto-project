@@ -16,12 +16,13 @@ const ChartView={
   // o: {s, tf, side, dir, entry, sl, tp1, tp2, t0 (ms nến tín hiệu), st, liq?, title?, beSL? (đã dời SL về entry)}
   async open(o){
     const lv=this.levels(o),id='c'+Date.now();
-    Modal.open(`${o.side==='LONG'?'🟢':'🔴'} ${o.side} ${Fmt.coin(o.s)} · ${o.tf} · ${esc(o.title||ST[o.st]||'')}`,
+    Modal.open(`${o.noLv?'👀':o.side==='LONG'?'🟢':'🔴'} ${o.noLv?'':o.side+' '}${Fmt.coin(o.s)} · ${o.tf} · ${esc(o.title||ST[o.st]||'')}`,
       `<div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on':''}" data-tf="${t}">${t==='1d'?'1D':t}${t===o.tf?' · khung lệnh':''}</button>`).join('')}${o.ana?`<label class="sw anw"><input type="checkbox" id="${id}a"${Store.get('anaOn',true)?' checked':''}><span></span>Vẽ phân tích</label>`:''}</div>
       <div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div>
+      ${o.noLv?`<p class="note" style="margin-top:10px">Coin đang theo dõi, <b>chưa có tín hiệu</b> nên chưa có giá vào, cắt lỗ, chốt lời. Bảng dưới cho biết điều kiện nào đã đạt, điều kiện nào còn thiếu tại nến vừa đóng.</p>`:''}
       <div class="chlg">${lv.map(x=>`<span class="lg ${x.k}"><i></i>${x.n}<b>${Fmt.px(x.p)}</b>${x.d!=null?`<small>${x.d>=0?'+':''}${x.d.toFixed(2)}%</small>`:''}</span>`).join('')}</div>
       ${o.ana?`<div class="anck" id="${id}k"></div>`:''}
-      <div class="row2" style="margin-top:12px"><a class="btnl" href="${TV(o.s,o.tf)}" target="_blank" rel="noopener">Mở ${Fmt.coin(o.s)} trên TradingView ↗</a><button class="ghost bx" data-copy>Sao chép các mức giá</button><span class="mut">Trên TradingView: chọn công cụ Long/Short Position rồi dán các mức này.</span></div>`);
+      <div class="row2" style="margin-top:12px"><a class="btnl" href="${TV(o.s,o.tf)}" target="_blank" rel="noopener">Mở ${Fmt.coin(o.s)} trên TradingView ↗</a>${o.noLv?'':'<button class="ghost bx" data-copy>Sao chép các mức giá</button>'}<span class="mut">Trên TradingView: chọn công cụ Long/Short Position rồi dán các mức này.</span></div>`);
     const box=$(id),cp=box.parentElement.querySelector('[data-copy]');
     if(cp)cp.onclick=async()=>{const txt=`${Fmt.coin(o.s)}USDT.P ${o.tf} ${o.side}\n`+lv.map(x=>`${x.n}: ${Fmt.px(x.p)}`).join('\n');try{await navigator.clipboard.writeText(txt);toast('Đã sao chép các mức giá.','up')}catch(e){toast('Trình duyệt chặn sao chép.','dn')}};
     // Vẽ theo khung đã chọn (mặc định khung của lệnh). Khung khác chỉ tải nến để xem, không ảnh hưởng việc theo dõi lệnh.
@@ -40,6 +41,7 @@ const ChartView={
     $(id+'b').onclick=e=>{const b=e.target.closest('[data-tf]');if(!b)return;$(id+'b').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));draw(b.dataset.tf)};
     await draw(o.tf)},
   levels(o){
+    if(o.noLv)return[];
     const be=o.beSL||o.st==='H',d=p=>(p/o.entry-1)*100;
     const a=[{k:'tp2',n:'TP2',p:o.tp2},{k:'tp1',n:'TP1',p:o.tp1},{k:'en',n:'Giá vào',p:o.entry},{k:'sl',n:be?'Cắt lỗ (đã dời về entry)':'Cắt lỗ',p:be?o.entry:o.sl}];
     if(o.liq)a.push({k:'liq',n:'Thanh lý ≈',p:o.liq});
@@ -52,9 +54,9 @@ const ChartView={
     if(tf!==o.tf){el.innerHTML=`<p class="note">Phân tích được vẽ trên <b>khung ${o.tf}</b> (khung chiến lược dùng để ra tín hiệu). Bấm nút ${o.tf} để xem.</p>`;return}
     if(!spec){el.innerHTML='<p class="note">Không đủ dữ liệu để vẽ phân tích cho tín hiệu này (tín hiệu quá cũ so với số nến đang tải).</p>';return}
     const ok=spec.checks.filter(c=>c[1]).length,col=q=>{const it=spec.items.find(x=>x.ck===q)||(spec.pane&&spec.pane.ck===q?spec.pane:null);return q===0?'linear-gradient(90deg,var(--up),var(--dn))':it?it.c:''};
-    el.innerHTML=`<div class="anh"><b>Điều kiện tại nến tín hiệu ${Fmt.hm(spec.t+Data.MS[o.tf])}</b><span class="chip ${ok===spec.checks.length?'up':''}">${ok}/${spec.checks.length} đạt</span></div>
+    el.innerHTML=`<div class="anh"><b>Điều kiện tại ${o.noLv?'nến vừa đóng':'nến tín hiệu'} ${Fmt.hm(spec.t+Data.MS[o.tf])}</b><span class="chip ${ok===spec.checks.length?'up':''}">${ok}/${spec.checks.length} đạt</span></div>
       <div class="anl">${spec.checks.map((c,q)=>`<div class="ar ${c[1]?'ok':'no'}" data-ck="${q}"><i>${c[1]?'✓':'✗'}</i><div><b>${esc(c[0])}</b>${spec.req.includes(q)?'<span class="tag rq">bắt buộc</span>':''}${spec.notes[q]?`<small>${esc(spec.notes[q])}</small>`:''}</div>${col(q)?`<span class="swc" style="background:${col(q)}"></span>`:''}</div>`).join('')}</div>
-      ${spec.gate?`<p class="wn">${esc(spec.gate)}</p>`:''}<p class="mut" style="font-size:12px;margin-top:8px">Rê chuột hoặc chạm vào một điều kiện để làm nổi hình vẽ tương ứng. Phần sau nến tín hiệu chỉ để xem giá đã đi thế nào.</p>`},
+      ${spec.gate?`<p class="wn">${esc(spec.gate)}</p>`:''}<p class="mut" style="font-size:12px;margin-top:8px">Rê chuột hoặc chạm vào một điều kiện để làm nổi hình vẽ tương ứng. ${o.noLv?'Khi đủ các điều kiện bắt buộc, coin sẽ có tín hiệu và hiện ở mục Đang có tín hiệu.':'Phần sau nến tín hiệu chỉ để xem giá đã đi thế nào.'}</p>`},
   showAna(on){const A=this.cur&&this.cur.ana;if(!A)return;for(const s of A.series)try{s.applyOptions({visible:on})}catch(e){}A.box.querySelectorAll('.abox').forEach(e=>e.style.visibility=on?'':'hidden');try{A.main.setMarkers(on?A.mkAll:A.mkBase)}catch(e){}},
   hiAna(q){const A=this.cur&&this.cur.ana;if(!A)return;A.box.querySelectorAll('.abox').forEach(e=>e.classList.toggle('hi',q!=null&&e.dataset.ck===String(q)));A.box.classList.toggle('anfocus',q!=null&&!!A.box.querySelector(`.abox[data-ck="${q}"]`))},
   lwc(box,D,o,lv,tf,spec){
@@ -71,7 +73,7 @@ const ChartView={
     if(o.sig0)mk.push({time:bt(o.sig0),position:o.dir>0?'belowBar':'aboveBar',color:tx,shape:'circle',text:'Tín hiệu '+Fmt.hm(o.sig0+ms)});
     if(o.ts)mk.push({time:bt(o.ts),position:o.dir>0?'belowBar':'aboveBar',color:acc,shape:o.dir>0?'arrowUp':'arrowDown',text:`Bạn đặt ${o.side} ${Fmt.hm(o.ts)}`});
     if(o.fillT&&Math.abs(o.fillT-(o.ts||0))>6e4)mk.push({time:bt(o.fillT),position:o.dir>0?'belowBar':'aboveBar',color:o.dir>0?up:dn,shape:o.dir>0?'arrowUp':'arrowDown',text:'Khớp '+Fmt.hm(o.fillT)});
-    if(!mk.length)mk.push({time:t0,position:o.dir>0?'belowBar':'aboveBar',color:o.dir>0?up:dn,shape:o.dir>0?'arrowUp':'arrowDown',text:o.side});
+    if(!mk.length&&!o.noLv)mk.push({time:t0,position:o.dir>0?'belowBar':'aboveBar',color:o.dir>0?up:dn,shape:o.dir>0?'arrowUp':'arrowDown',text:o.side});
     mk.sort((a,b)=>a.time-b.time);try{s.setMarkers(mk)}catch(e){}
     const ana=spec?this.drawAna(chart,s,box,D,spec,mk,bars):null;
     chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-140),to:bars.length+12});
@@ -79,7 +81,7 @@ const ChartView={
     const place=()=>{if(!box.isConnected)return;
       const x0=chart.timeScale().timeToCoordinate(t0),W=el.clientWidth-(chart.priceScale('right').width()||60),y=p=>s.priceToCoordinate(p);
       const set=(z,a,b)=>{const ya=y(a),yb=y(b);if(ya==null||yb==null||x0==null){z.style.display='none';return}z.style.display='block';z.style.left=Math.max(0,x0)+'px';z.style.width=Math.max(0,W-Math.max(0,x0))+'px';z.style.top=Math.min(ya,yb)+'px';z.style.height=Math.abs(ya-yb)+'px'};
-      set(pz,o.entry,o.tp2);if(be)lz.style.display='none';else set(lz,o.entry,o.sl);
+      if(o.noLv){pz.style.display=lz.style.display='none'}else{set(pz,o.entry,o.tp2);if(be)lz.style.display='none';else set(lz,o.entry,o.sl)}
       if(ana)for(const b of ana.boxes){const xa=chart.timeScale().timeToCoordinate(b.ta),xb=b.end?W:chart.timeScale().timeToCoordinate(b.tb),ya=y(b.hi),yb=y(b.lo);
         if(xa==null||ya==null||yb==null){b.el.style.display='none';continue}b.el.style.display='block';const l=Math.max(0,xa),r=Math.min(W,xb==null?W:xb+3);
         b.el.style.left=l+'px';b.el.style.width=Math.max(2,r-l)+'px';b.el.style.top=Math.max(0,Math.min(ya,yb))+'px';b.el.style.height=Math.max(2,Math.abs(yb-ya))+'px'}};
@@ -129,6 +131,10 @@ const ChartView={
   order(id){const o=Book.byId(id);if(!o)return;const v=o.strat&&Strat.byId(o.strat.id),base=o.strat&&o.strat.base;
     this.open({...o,t0:o.fillT||o.ts,sig0:o.sig0||o.sigT,title:`${ST[o.st]} · ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} · bạn đặt lúc ${Fmt.hm(o.ts)}`,
       ana:base&&Strat.impl[base]?{base,P:{...Strat.impl[base].defaults,...(v?v.params:{}),...(o.P||{})},t:o.sig0||o.sigT}:null})},
+  // Coin đang theo dõi (chưa có tín hiệu): vẽ phân tích tại nến vừa đóng
+  watch(s){const x=Sig.state[s];if(!x||!x.ok||!x.D)return;const D=x.D,i=D.c.length-2,a=x.an||{},P=x.P||x.v.params;
+    this.open({s,tf:x.tf,side:a.dir||'LONG',dir:a.dirN||1,entry:D.c[D.c.length-1],noLv:true,st:'',title:`Đang theo dõi, nghiêng ${a.dir||'?'} · ${a.score!=null?a.score+'/'+a.checks.length+' điều kiện · ':''}${Strat.label(x.v)}`,
+      ana:{base:x.v.base,P,t:D.t[i]}})},
   signal(s){const x=Sig.state[s];if(!x||!x.tr)return;const{sig,i,L}=x.tr,z=Sig.size(s);
     this.open({s,tf:x.tf,side:sig.side,dir:sig.dirN,entry:L.e,sl:L.sl,tp1:L.tp1,tp2:L.tp2,t0:L.fill!=null?x.D.t[L.fill]:x.D.t[i],sig0:x.D.t[i],fillT:L.fill!=null?x.D.t[L.fill]+Data.MS[x.tf]:null,st:L.st,liq:z.liq,title:`${ST[L.st]} · ${Strat.label(x.v)}`,
       ana:{base:x.v.base,P:x.P||x.v.params,t:x.D.t[i]}})}

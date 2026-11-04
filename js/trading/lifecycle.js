@@ -5,8 +5,12 @@
                                                   └ chiến lược báo hết hy vọng → E (thoát sớm tại giá đóng nến)
 
    Quy ước bảo thủ: trong cùng một nến, chạm cả SL lẫn TP thì tính là chạm SL; TP chỉ tính từ nến sau nến khớp.
-   Lệnh THẮNG của chiến lược = đã chạm TP1 (đã chốt 50% và dời SL về giá vào). Chưa chạm TP1 thì là THUA, kể cả cắt sớm có lãi nhỏ. */
+   Kết quả lệnh:
+     THẮNG      = chạm TP2 (chốt 50% ở TP1 + 50% ở TP2 = +2,25R)
+     HÒA VỐN BE = chạm TP1 rồi về giá vào / cắt sớm; hoặc cắt sớm trước TP1 mà vẫn dương
+     THUA       = chạm cắt lỗ, hoặc cắt sớm trước TP1 mà âm */
 const Life={
+  res(st,rr,tp1){if(st==='T')return'win';if(st==='S')return'loss';if(st==='B')return'be';if(st==='E'||st==='M')return tp1||rr>0?'be':'loss';return null},
   run(D,i,sig,impl,P){
     const dir=sig.dirN,E=sig.entry,SL=sig.sl,T1=sig.tp1,T2=sig.tp2,R=sig.R,last=D.c.length-1,W=P.W||3,MH=P.maxHold||48;
     const out={st:'P',i,e:E,sl:SL,tp1:T1,tp2:T2,R,dir,fill:null,tp1At:null,end:null,exit:null,rr:null,why:null,win:false,tp1Hit:false,bestR:0};
@@ -25,7 +29,7 @@ const Life={
     if(f<0)return out;
     out.fill=f;out.st='F'; // ---- pha đã khớp ----
     let sl=SL,tp1=false;const pos={dir,entry:E,R,f,bestR:0,tp1Hit:false};
-    const fin=(st,rr,exit,j,why)=>{out.st=st;out.rr=rr;out.exit=exit;out.end=j;if(why)out.why=why;out.tp1Hit=tp1;out.win=tp1;return out}; // thắng = đã chạm TP1
+    const fin=(st,rr,exit,j,why)=>{out.st=st;out.rr=rr;out.exit=exit;out.end=j;if(why)out.why=why;out.tp1Hit=tp1;out.res=Life.res(st,rr,tp1);out.win=out.res==='win';out.be=out.res==='be';return out}; // thắng = chạm TP2, BE = hòa vốn
     for(let j=sig.mkt?f+1:f;j<=last;j++){
       const hi=D.h[j],lo=D.l[j];
       if(dir>0?lo<=sl:hi>=sl)return tp1?fin('B',0.5*P.tp1R,sl,j):fin('S',-1,sl,j);
