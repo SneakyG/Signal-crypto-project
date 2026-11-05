@@ -232,7 +232,7 @@ tbody tr.tp1 td:first-child{box-shadow:inset 3px 0 0 var(--up)}
 .modal.on{opacity:1;pointer-events:auto}
 .mbox{width:min(720px,100%);max-height:86vh;overflow:auto;border-radius:20px;background:var(--card);border:1px solid var(--line);box-shadow:0 30px 80px -20px rgba(0,0,0,.6);transform:translateY(14px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 .modal.on .mbox{transform:none}
-.mhead{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+.mhead{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line)}
 .mhead h2{font-size:18px}.mbody{padding:16px 20px 22px}
 .mbody h3{font-size:14px;margin:16px 0 8px}
 .whyl p{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--soft);border-left:3px solid var(--acc);font-size:13.5px;line-height:1.55}
@@ -781,3 +781,10 @@ nav .sl{display:none;font-style:normal}
 .dsh div{display:flex;flex-direction:column;min-width:0}
 .dsh i{font-style:normal;font-size:10.5px;color:var(--mut)}
 .dsh b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Popup biểu đồ: hàng chọn khung + công tắc vẽ phân tích, nút về nến mới nhất */
+.tfr{display:flex;align-items:center;gap:10px;margin:0 0 10px}.tfb .kl2{display:none;font-style:normal;font-size:11px}.tfr .tfb{margin:0;flex:1;min-width:0}.tfr .anw{margin-left:auto;flex:none;white-space:nowrap}.tfb em,.anw em{font-style:normal}
+.chfit{position:absolute;left:8px;top:8px;z-index:3;width:32px;height:32px;padding:0;border-radius:9px;font-size:16px;line-height:1;background:rgba(15,23,42,.75);color:#e5e7eb;border:1px solid var(--line);box-shadow:none}
+@media(max-width:760px){.tfb{scrollbar-width:none}.tfb::-webkit-scrollbar{display:none}.tfb button{padding:6px 11px}.tfb em,.anw em{display:none}.tfb .kl2{display:inline}
+  .tfr{gap:8px}.anw{font-size:12px;gap:6px}.anw span{width:36px;height:21px}.anw span::after{width:15px;height:15px}.anw input:checked+span::after{transform:translateX(15px)}
+  .mhead h2{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.chw{height:48vh}}
