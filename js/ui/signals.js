@@ -1,8 +1,8 @@
 /* Trang Bảng tín hiệu: thiết lập, thẻ tín hiệu, đặt lệnh (ký quỹ + đòn bẩy tự tính), KPI, giải thích "vì sao chưa có lệnh" */
 const UI={
   tf:()=>$('tf').value,bal:()=>+$('bal').value||0,risk:()=>+$('risk').value||5,slots:()=>+$('slots').value||20,topk:()=>+$('topk').value||10,
-  save(){Store.set('ui',{tf:$('tf').value,bal:$('bal').value,risk:$('risk').value,slots:$('slots').value,topk:$('topk').value,v:4})},
-  load(){const u=Store.get('ui',null);if(u)for(const k of['tf','bal','risk','slots','topk'])if(u[k]!=null&&$(k)&&(u.v>=3||k!=='risk'&&k!=='topk')&&(u.v>=4||k!=='tf'))$(k).value=u[k]},
+  save(){Store.set('ui',{tf:$('tf').value,bal:$('bal').value,risk:$('risk').value,slots:$('slots').value,topk:$('topk').value,v:6})},
+  load(){const u=Store.get('ui',null);if(u)for(const k of['tf','bal','risk','slots','topk'])if(u[k]!=null&&$(k)&&(u.v>=6||k!=='risk')&&(u.v>=3||k!=='topk')&&(u.v>=4||k!=='tf'))$(k).value=u[k];if(u&&u.v<6){$('risk').value=5;this.save()}}, // rủi ro mặc định 5% cho mọi chiến lược
   fillStrat(){
     $('strat').innerHTML=`<option value="auto"${Strat.isAuto()?' selected':''}>⚡ Tự động: chiến lược thắng cao nhất cho từng coin</option>`
       +Strat.usable().map(v=>`<option value="${v.id}"${v.id===Strat.active?' selected':''}>${Strat.label(v)}</option>`).join('');
@@ -211,7 +211,10 @@ const Sig={
   render(){
     const p=this.plan(),xs=this.watch().filter(s=>this.state[s]&&this.state[s].ok),
       isAct=s=>{const t=this.state[s].tr;return t&&Book.isOpen(t.L)},
-      rank=s=>{const L=this.state[s].tr.L;return this.canPlace(s)?(L.st==='P'?0:1):Book.openFor(s)?2:3},act=xs.filter(isAct).sort((a,b)=>rank(a)-rank(b)),rest=xs.filter(s=>!isAct(s));
+      rank=s=>{const L=this.state[s].tr.L;return this.canPlace(s)?(L.st==='P'?0:1):Book.openFor(s)?2:3},act=xs.filter(isAct).sort((a,b)=>rank(a)-rank(b)),
+      // Đang theo dõi: coin đạt nhiều điều kiện nhất (tính theo tỉ lệ, vì mỗi chiến lược có số điều kiện khác nhau) lên trước; bằng nhau thì coin thiếu ít điều kiện bắt buộc hơn lên trước
+      near=s=>{const a=this.state[s].an||{},ck=a.checks||[],n=ck.length||1,ok=ck.filter(c=>c[1]).length,miss=(a.req||[]).filter(q=>ck[q]&&!ck[q][1]).length;return[ok/n,-miss,ok]},
+      rest=xs.filter(s=>!isAct(s)).map((s,i)=>[s,near(s),i]).sort((A,B)=>B[1][0]-A[1][0]||B[1][1]-A[1][1]||B[1][2]-A[1][2]||A[2]-B[2]).map(x=>x[0]);
     this.kpi(p);
     paint($('grid'),act.map(s=>this.cardItem(s,p)));
     paint($('wait'),rest.map(s=>this.miniItem(s)));
@@ -236,7 +239,7 @@ const Sig={
     for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();this.amts={};this.render()});
     $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});
     $('tf').addEventListener('input',()=>this.reload());
-    $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();const I=!Strat.isAuto()&&Strat.I();if(I&&I.profile&&I.profile.risk&&UI.risk()!==I.profile.risk){$('risk').value=I.profile.risk;UI.save();toast(`${esc(Strat.label(Strat.cur()))} dùng rủi ro mặc định <b>${I.profile.risk}%/lệnh</b>. Đã đổi ô Rủi ro mỗi lệnh, bạn vẫn có thể sửa lại.`,'up')}this.reload()});
+    $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()}); // đổi chiến lược giữ nguyên ô Rủi ro (mặc định 5% cho mọi chiến lược)
     $('autoon').checked=Store.get('auto',false);
     $('autoon').addEventListener('change',()=>{const on=$('autoon').checked;Store.set('auto',on);toast(on?'Đã bật <b>tự động đặt lệnh</b>: coin nào hiện nút Đặt lệnh sẽ được ghi nhận ngay với số tiền gợi ý (chỉ trên thiết bị này).':'Đã tắt tự động đặt lệnh.',on?'up':'');if(on){this.autoPlace();this.render()}});
     $('rescan').onclick=async()=>{await Scan.run();await this.refresh();await Calib.run(this.focus,UI.tf());await this.refresh()};
