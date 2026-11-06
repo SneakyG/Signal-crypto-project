@@ -36,7 +36,7 @@ async function main(opt={}){
     fetch:(u,o)=>fetchX(u,o)};
   vm.createContext(ctx);
   const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
-  const files=[...html.matchAll(/<script src="([^"]+)"/g)].map(m=>m[1]).filter(f=>f!=='js/main.js'&&!/^https?:/.test(f));
+  const files=[...html.matchAll(/<script src="([^"?]+)/g)].map(m=>m[1]).filter(f=>f!=='js/main.js'&&!/^https?:/.test(f));
   for(const f of files)vm.runInContext(fs.readFileSync(path.join(ROOT,f),'utf8'),ctx,{filename:f});
   const A=vm.runInContext('({Store,Sync,Sig,Scan,Calib,Book,TG,Strat,AutoLab,UI,Data,Net,Fmt,BookPage,Lab})',ctx);
   for(const o of[A.BookPage,A.Lab,A.Scan])for(const k of['render','renderRank','renderLog','paintBar'])if(o&&typeof o[k]==='function')o[k]=()=>{};
