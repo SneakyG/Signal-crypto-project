@@ -17,7 +17,7 @@ const ChartView={
   async open(o){
     const lv=this.levels(o),id='c'+Date.now();
     Modal.open(`${o.noLv?'👀':o.side==='LONG'?'🟢':'🔴'} ${o.noLv?'':o.side+' '}${Fmt.coin(o.s)} · ${o.tf} · ${esc(o.title||ST[o.st]||'')}`,
-      `<div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on':''}" data-tf="${t}">${t==='1d'?'1D':t}${t===o.tf?' · khung lệnh':''}</button>`).join('')}${o.ana?`<label class="sw anw"><input type="checkbox" id="${id}a"${Store.get('anaOn',true)?' checked':''}><span></span>Vẽ phân tích</label>`:''}</div>
+      `<div class="tfr"><div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on home':''}" data-tf="${t}" title="${t===o.tf?'Khung chiến lược dùng để ra lệnh':''}">${t==='1d'?'1D':t}${t===o.tf?'<em> · khung lệnh</em><i class="kl2"> ★</i>':''}</button>`).join('')}</div>${o.ana?`<label class="sw anw"><input type="checkbox" id="${id}a"${Store.get('anaOn',true)?' checked':''}><span></span>Vẽ<em> phân tích</em></label>`:''}</div>
       <div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div>
       ${o.noLv?`<p class="note" style="margin-top:10px">Coin đang theo dõi, <b>chưa có tín hiệu</b> nên chưa có giá vào, cắt lỗ, chốt lời. Bảng dưới cho biết điều kiện nào đã đạt, điều kiện nào còn thiếu tại nến vừa đóng.</p>`:''}
       <div class="chlg">${lv.map(x=>`<span class="lg ${x.k}"><i></i>${x.n}<b>${Fmt.px(x.p)}</b>${x.d!=null?`<small>${x.d>=0?'+':''}${x.d.toFixed(2)}%</small>`:''}</span>`).join('')}</div>
@@ -61,7 +61,7 @@ const ChartView={
   hiAna(q){const A=this.cur&&this.cur.ana;if(!A)return;A.box.querySelectorAll('.abox').forEach(e=>e.classList.toggle('hi',q!=null&&e.dataset.ck===String(q)));A.box.classList.toggle('anfocus',q!=null&&!!A.box.querySelector(`.abox[data-ck="${q}"]`))},
   lwc(box,D,o,lv,tf,spec){
     const L=window.LightweightCharts,up=this.css('--up'),dn=this.css('--dn'),tx=this.css('--mut'),ln=this.css('--line'),acc=this.css('--acc');
-    box.innerHTML='<div class="lwc"></div><div class="zone pz"></div><div class="zone lz"></div>';
+    box.innerHTML='<div class="lwc"></div><div class="zone pz"></div><div class="zone lz"></div><button class="chfit" title="Về nến mới nhất">⤢</button>';
     const el=box.firstChild,chart=L.createChart(el,{autoSize:true,layout:{background:{type:'solid',color:'transparent'},textColor:tx,fontFamily:'inherit'},
       grid:{vertLines:{color:ln},horzLines:{color:ln}},rightPriceScale:{borderColor:ln},timeScale:{borderColor:ln,timeVisible:true,secondsVisible:false},crosshair:{mode:0}});
     const s=chart.addCandlestickSeries({upColor:up,downColor:dn,wickUpColor:up,wickDownColor:dn,borderVisible:false,priceFormat:{type:'price',precision:o.entry>=100?2:o.entry>=1?4:5,minMove:o.entry>=100?0.01:o.entry>=1?0.0001:0.00001}});
@@ -76,7 +76,10 @@ const ChartView={
     if(!mk.length&&!o.noLv)mk.push({time:t0,position:o.dir>0?'belowBar':'aboveBar',color:o.dir>0?up:dn,shape:o.dir>0?'arrowUp':'arrowDown',text:o.side});
     mk.sort((a,b)=>a.time-b.time);try{s.setMarkers(mk)}catch(e){}
     const ana=spec?this.drawAna(chart,s,box,D,spec,mk,bars):null;
-    chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-140),to:bars.length+12});
+    // Số nến hiển thị theo bề rộng (điện thoại ≈ 50 nến, máy tính ≈ 140 nến), chừa 3 nến trống bên phải
+    const fit=()=>{const w=el.clientWidth;if(!w)return;const n=Math.max(36,Math.min(140,Math.round(w/7.5)));chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-n),to:bars.length+3})};
+    let lw=0;const ro=new ResizeObserver(()=>{const w=el.clientWidth;if(w&&Math.abs(w-lw)>40){lw=w;fit()}});ro.observe(el);fit();
+    box.querySelector('.chfit').onclick=fit;
     const pz=box.querySelector('.pz'),lz=box.querySelector('.lz'),be=o.beSL||o.st==='H';
     const place=()=>{if(!box.isConnected)return;
       const x0=chart.timeScale().timeToCoordinate(t0),W=el.clientWidth-(chart.priceScale('right').width()||60),y=p=>s.priceToCoordinate(p);
@@ -87,7 +90,7 @@ const ChartView={
         b.el.style.left=l+'px';b.el.style.width=Math.max(2,r-l)+'px';b.el.style.top=Math.max(0,Math.min(ya,yb))+'px';b.el.style.height=Math.max(2,Math.abs(yb-ya))+'px'}};
     chart.timeScale().subscribeVisibleLogicalRangeChange(place);
     const tick=()=>{if(!box.isConnected){this.close();return}const p=Data.px[o.s],b=bars[bars.length-1];if(p!=null&&p!==b.close){b.close=p;b.high=Math.max(b.high,p);b.low=Math.min(b.low,p);s.update({...b})}place();this.cur.raf=requestAnimationFrame(tick)};
-    this.cur={chart,raf:requestAnimationFrame(tick),ana};if(ana&&!Store.get('anaOn',true))this.showAna(false);setTimeout(place,60)},
+    this.cur={chart,raf:requestAnimationFrame(tick),ana,ro};if(ana&&!Store.get('anaOn',true))this.showAna(false);setTimeout(place,60)},
   // Vẽ các hình phân tích lên biểu đồ Lightweight Charts
   drawAna(chart,main,box,D,spec,mkBase,bars){
     const tz=this.tz(),k0=D.t.length-bars.length,last=D.t.length-1,T=j=>D.t[Math.min(last,Math.max(k0,j))]/1000+tz,series=[],boxes=[],hex=(c,a)=>{const n=parseInt(c.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
@@ -126,7 +129,7 @@ const ChartView={
         return out.join('')})()}
       ${lv.map(v=>`<line x1="0" x2="${W-R}" y1="${y(v.p)}" y2="${y(v.p)}" stroke="${col[v.k]}" stroke-dasharray="${v.k==='tp1'?'6 4':v.k==='liq'?'2 3':''}"/><text x="${W-R+4}" y="${+y(v.p)+4}" fill="${col[v.k]}" font-size="11">${v.k==='en'?'Entry':v.k.toUpperCase()} ${Fmt.px(v.p)}</text>`).join('')}</svg>
       <p class="note">Không tải được thư viện biểu đồ của TradingView (kiểm tra mạng), đang hiển thị bản vẽ đơn giản.</p>`},
-  close(){if(this.cur){cancelAnimationFrame(this.cur.raf);try{this.cur.chart.remove()}catch(e){}this.cur=null}},
+  close(){if(this.cur){cancelAnimationFrame(this.cur.raf);try{this.cur.ro&&this.cur.ro.disconnect()}catch(e){}try{this.cur.chart.remove()}catch(e){}this.cur=null}},
   // Mở biểu đồ cho một lệnh trong Sổ lệnh hoặc một tín hiệu trên thẻ
   order(id){const o=Book.byId(id);if(!o)return;const v=o.strat&&Strat.byId(o.strat.id),base=o.strat&&o.strat.base;
     this.open({...o,t0:o.fillT||o.ts,sig0:o.sig0||o.sigT,title:`${ST[o.st]} · ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} · bạn đặt lúc ${Fmt.hm(o.ts)}`,

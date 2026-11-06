@@ -49,17 +49,17 @@ const Sig={
   async refresh(){
     if(this.busy)return;this.busy=true;
     try{
-      const tf=UI.tf(),cur={};
+      const cur={};
       await Promise.all(this.watch().map(async s=>{
         try{
-          const v=Strat.forCoin(s);
+          const v=Strat.forCoin(s),tf=Strat.tfOf(v);
           if(!Strat.fits(v,s,tf))throw new Error('chiến lược không áp dụng cho coin/khung này');
           const calib=Calib.get(s,v,tf),{impl,P}=Calib.wrap(Strat.impl[v.base],v.params,calib); // SL/TP đã tối ưu theo thống kê coin
           const D=await this.series(s,tf),an=impl.analyze(D,D.c.length-2,P);if(!an)throw new Error('ít nến');
           cur[s+'|'+tf]=D;
           this.state[s]={tf,D,v,P,calib,an,tr:this.track(D,impl,P),price:Data.px[s]||D.c[D.c.length-1],spark:D.c.slice(-49,-1),n:D.c.length-1,ok:true}
         }catch(e){this.state[s]={ok:false,err:e.message}}}));
-      this.sweeps();this.events(tf);await Book.sync(cur);this.autoPlace();this.render();
+      this.sweeps();for(const tf of new Set(Object.values(this.state).filter(x=>x.ok).map(x=>x.tf)))this.events(tf);await Book.sync(cur);this.autoPlace();this.render();
       $('st').className='dot on';$('upd').textContent=new Date().toLocaleTimeString('vi-VN')
     }finally{this.busy=false}},
   // Chiến lược có sweepAlert: báo ngay khi nến vừa đóng là một cú quét thanh khoản (bước 2), trước cả khi có MSS / lệnh chờ
@@ -118,7 +118,7 @@ const Sig={
     const tpl=`<article class="card ${sig.side} ${cls}">
       <div class="top"><b>${coinLink(s,x.tf)}</b><small>/USDT</small>${spark(x.spark,up?'up':'dn',100,30)}<span class="px" data-live="p:${s}">%PX%</span></div>
       <div class="pills">${pill(sig.side,sig.side)}${pill(ST[L.st],cls)}${this.canPlace(s)?'<span class="badge go">Đặt được ngay</span>':''}${this.meter(sig)}<span class="mut">${sig.score}/${sig.checks.length}</span></div>
-      <div class="stg">${esc(Strat.label(x.v))}</div> <button class="bx ghost chb" data-sigchart="${s}">📈 Xem trên biểu đồ</button>${this.dash(s)}
+      <div class="stg">${esc(Strat.label(x.v))} · ${x.tf}</div> <button class="bx ghost chb" data-sigchart="${s}">📈 Xem trên biểu đồ</button>${this.dash(s)}
       <ul>${sig.checks.map((c,i)=>`<li class="${c[1]?'y':''}${sig.req&&sig.req.includes(i)?' rq':''}">${esc(c[0])}</li>`).join('')}</ul>
       <div class="rail"><em style="left:0" data-l="Cắt lỗ"></em><em style="left:25%" data-l="Vào"></em><em style="left:62.5%" data-l="TP1"></em><em style="left:100%" data-l="TP2"></em></div>
       <div class="lv"><div><i>Giá đặt (limit)</i><b>${Fmt.px(L.e)}</b></div><div><i>${L.st==='H'?'Cắt lỗ (đã dời về entry)':'Cắt lỗ'}</i><b>${Fmt.px(L.st==='H'?L.e:L.sl)}</b><span class="sub">${(L.R/L.e*100).toFixed(2)}% từ giá vào</span></div><div><i>Chốt lời 1 (1,5R, chốt 50%)</i><b>${Fmt.px(L.tp1)}</b></div><div><i>Chốt lời 2 (3R, chốt hết)</i><b>${Fmt.px(L.tp2)}</b></div></div>
@@ -138,7 +138,7 @@ const Sig={
     const tpl=`<article class="mini"><div class="mh"><b>${coinLink(s,x.tf)}</b><small>/USDT</small><span class="px" data-live="p:${s}">%PX%</span></div>${spark(x.spark,up?'up':'dn',240,34)}
       <div class="mf"><span class="badge ${done?tr.sig.side:old?a.side:''}">${done?ST[L.st]:old?a.side+' · cũ':'Chờ tín hiệu'}</span>${this.meter(a)}</div>
       <small class="mut">${a.score}/${a.checks.length} điều kiện (${a.dir}). ${esc(txt)}</small>${this.dash(s)}
-      <div class="mfoot"><span class="stg">${esc(Strat.label(x.v))}</span><span class="mbt"><button class="bx ghost" data-watchchart="${s}">📈 Phân tích</button><button class="bx ghost why" data-why="${s}">Vì sao chưa có lệnh?</button></span></div></article>`;
+      <div class="mfoot"><span class="stg">${esc(Strat.label(x.v))} · ${x.tf}</span><span class="mbt"><button class="bx ghost" data-watchchart="${s}">📈 Phân tích</button><button class="bx ghost why" data-why="${s}">Vì sao chưa có lệnh?</button></span></div></article>`;
     return{k:s,tpl,px:x.price}},
   // Giải thích chi tiết vì sao coin chưa có lệnh chờ
   explain(s){
@@ -225,7 +225,7 @@ const Sig={
   async reload(){ // đổi chiến lược hoặc khung nến: áp dụng ngay, quét lại và chọn lại coin
     UI.lockTf();UI.save();this.state={};this.seeded={};
     const o=Strat.isAuto()?null:Strat.I().only;if(o){this.focus=o.slice();Store.set('focus',this.focus)}
-    this.render();await this.refresh();await Scan.run();await this.refresh();await Calib.run(this.focus,UI.tf());await this.refresh()},
+    this.render();await this.refresh();await Scan.run();await this.refresh();await Calib.run(this.focus);await this.refresh()},
   init(){
     const m=$('p-main');
     m.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.amt;if(!k)return;
@@ -242,7 +242,7 @@ const Sig={
     $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()}); // đổi chiến lược giữ nguyên ô Rủi ro (mặc định 5% cho mọi chiến lược)
     $('autoon').checked=Store.get('auto',false);
     $('autoon').addEventListener('change',()=>{const on=$('autoon').checked;Store.set('auto',on);toast(on?'Đã bật <b>tự động đặt lệnh</b>: coin nào hiện nút Đặt lệnh sẽ được ghi nhận ngay với số tiền gợi ý (chỉ trên thiết bị này).':'Đã tắt tự động đặt lệnh.',on?'up':'');if(on){this.autoPlace();this.render()}});
-    $('rescan').onclick=async()=>{await Scan.run();await this.refresh();await Calib.run(this.focus,UI.tf());await this.refresh()};
+    $('rescan').onclick=async()=>{await Scan.run();await this.refresh();await Calib.run(this.focus);await this.refresh()};
     document.addEventListener('mousemove',e=>{const c=e.target.closest&&e.target.closest('.card,.mini,.tile,.kpi');if(c){const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')}});
     document.addEventListener('click',Tbl.click)}
 };

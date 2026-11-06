@@ -7,7 +7,10 @@
    - Chiến lược: gộp từng phiên bản; kết quả thắng/thua của phiên bản gộp theo từng lệnh, không đếm trùng.
    - Chỉ MÁY CHÍNH được tự động đặt lệnh, tự học và gửi Telegram, để hai máy không làm trùng. Máy phụ xem, đặt tay, cắt, hủy lệnh. */
 const Sync={
-  FILE:'tin-hieu-sync.json',DESC:'Tín hiệu – dữ liệu đồng bộ (tự tạo, đừng xóa)',API:'https://api.github.com',
+  FILE:'tin-hieu-sync.json',BOTFILE:'tin-hieu-bot.json',botAt:0,mainAt:0,
+  botOn(){return Date.now()-this.botAt<20*6e4}, // máy chủ đám mây chạy trong 20 phút gần đây
+  mainStale(){return Date.now()-this.mainAt>5*6e4}, // máy chính không đồng bộ hơn 5 phút = đã tắt trang
+DESC:'Tín hiệu – dữ liệu đồng bộ (tự tạo, đừng xóa)',API:'https://api.github.com',
   busy:false,at:0,err:'',timer:null,
   H:Store.get('syncH',{o:{},l:{},c:0}), // dấu vân tay bản đã đồng bộ, để biết dữ liệu nào vừa sửa trên máy này
   token(){return Store.get('syncTok','')},
@@ -29,15 +32,17 @@ const Sync={
     Store.set('syncGist',id);return id},
   async pull(id){
     const g=await this.gh('/gists/'+id),f=g.files&&g.files[this.FILE];if(!f)return null;
+    const b=g.files[this.BOTFILE];if(b)try{this.botAt=JSON.parse(b.content).at||0}catch(e){}
     const txt=f.truncated?await(await fetch(f.raw_url,{cache:'no-store'})).text():f.content;
     try{return JSON.parse(txt)}catch(e){return null}},
-  cfg(){const u=Store.get('ui',{});return{ui:{tf:u.tf,bal:u.bal,risk:u.risk,slots:u.slots,topk:u.topk,v:u.v},active:Strat.active,tp1:Store.get('tp1',1.5),tp2:Store.get('tp2','auto')}},
+  cfg(){const u=Store.get('ui',{});return{ui:{tf:u.tf,bal:u.bal,risk:u.risk,slots:u.slots,topk:u.topk,v:u.v},active:Strat.active,tp1:Store.get('tp1',1.5),tp2:Store.get('tp2','auto'),auto:Store.get('auto',false),
+    tg:{t:Store.get('tgt',''),c:Store.get('tgc',''),u:Store.get('tgU',0)}}}, // Telegram và Tự động đặt lệnh dùng chung cho mọi máy (và máy chủ đám mây)
   // Đánh dấu giờ sửa (u) cho mọi thứ đã thay đổi trên máy này kể từ lần đồng bộ trước
   stamp(){
     const now=Date.now(),strip=x=>{const{u,...r}=x;return r};
     for(const o of Book.data.orders){const h=this.hash(strip(o));if(this.H.o[o.id]!==h){o.u=now;this.H.o[o.id]=h}}
     for(const v of Strat.list){const h=this.hash(strip(v));if(this.H.l[v.id]!==h){v.u=now;this.H.l[v.id]=h}}
-    const c=this.hash(this.cfg());if(this.H.c!==c){Store.set('syncCfgU',now);this.H.c=c}},
+    const c=this.hash(this.cfg());if(this.H.c!==c){if(this.H.c)Store.set('syncCfgU',now);this.H.c=c}}, // máy mới kết nối lần đầu: lấy thiết lập trên Gist, không ghi đè
   pack(){return{v:1,at:Date.now(),day:Book.data.day,wipe:Book.data.wipe||0,orders:Book.data.orders,
     lab:{list:Strat.list,dead:Store.get('labDead',[])},cfg:{u:Store.get('syncCfgU',0),...this.cfg()}}},
   // Chọn bản của một lệnh khi cả hai máy đều có
@@ -74,7 +79,11 @@ const Sync={
     if(C&&(C.u||0)>Store.get('syncCfgU',0)){
       Store.set('ui',{...Store.get('ui',{}),...C.ui});if(C.tp1!=null)Store.set('tp1',C.tp1);if(C.tp2!=null)Store.set('tp2',C.tp2);
       if(C.active&&(C.active==='auto'||Strat.byId(C.active)))Strat.active=C.active;
+      if(C.auto!=null){Store.set('auto',!!C.auto);const a=$('autoon');if(a)a.checked=!!C.auto}
       Store.set('syncCfgU',C.u);UI.load();Strat.applyTP();cfgCh=true}
+    // Telegram: lấy bản có token mới hơn (không bao giờ ghi đè token đang có bằng ô trống)
+    if(C&&C.tg&&C.tg.t&&C.tg.c&&((C.tg.u||0)>Store.get('tgU',0)||!Store.get('tgt',''))){Store.set('tgt',C.tg.t);Store.set('tgc',C.tg.c);Store.set('tgU',C.tg.u||0);
+      for(const[k,v]of[['tgt',C.tg.t],['tgc',C.tg.c]]){const e=$(k);if(e)e.value=v}cfgCh=true}
     this.H.c=this.hash(this.cfg());
     return{ch,labCh,cfgCh}},
   async run(force){
@@ -83,14 +92,17 @@ const Sync={
       Book.roll();this.stamp();
       let id=await this.gist(),R;
       try{R=await this.pull(id)}catch(e){if(e.status!==404)throw e;Store.set('syncGist','');id=await this.gist();R=await this.pull(id)} // Gist đã bị xóa → tạo lại từ dữ liệu máy này
+      if(R)this.mainAt=R.mainAt||0;
       const r=R?this.merge(R):{ch:false,labCh:false,cfgCh:false};
       if(r.ch||r.labCh)Book.save();if(r.labCh||r.cfgCh)Strat.save();
       // Ghi lên Gist khi dữ liệu sau khi gộp khác với bản đang có trên Gist
-      const P=this.pack(),diff=!R||this.hash(R.orders)!==this.hash(P.orders)||this.hash(R.lab)!==this.hash(P.lab)||this.hash(R.cfg)!==this.hash(P.cfg)||R.wipe!==P.wipe;
+      const P=this.pack(),beat=this.main()&&!(typeof window!=='undefined'&&window.BOT)&&Date.now()-(R&&R.mainAt||0)>2*6e4; // máy chính báo "đang mở" mỗi 2 phút
+      P.mainAt=beat||(this.main()&&!R)?Date.now():(R&&R.mainAt||0);if(this.main()&&!(typeof window!=='undefined'&&window.BOT))this.mainAt=P.mainAt;
+      const diff=beat||!R||this.hash(R.orders)!==this.hash(P.orders)||this.hash(R.lab)!==this.hash(P.lab)||this.hash(R.cfg)!==this.hash(P.cfg)||R.wipe!==P.wipe;
       if(diff||force)await this.gh('/gists/'+id,{method:'PATCH',body:JSON.stringify({files:{[this.FILE]:{content:JSON.stringify(P)}}})});
       Store.set('syncH',this.H);this.at=Date.now();this.err='';
       if(r.ch){BookPage.render();Sig.render()}
-      if(r.labCh||r.cfgCh){UI.fillStrat();Ana.fillStrats();Lab.render()}
+      if(r.labCh||r.cfgCh){UI.fillStrat();Ana.fillStrats();Lab.render()}if(typeof TG!=='undefined')TG.paint();
       if(r.cfgCh)Sig.reload();}
     catch(e){this.err=/fetch/i.test(e.message)?'Không kết nối được GitHub. Kiểm tra mạng.':e.message}
     finally{this.busy=false;this.paint()}},

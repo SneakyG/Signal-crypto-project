@@ -76,7 +76,7 @@ async function main(opt={}){
     n++;
     try{
       await A.Data.prices();
-      if(Date.now()-lastScan>5*6e4){await A.Scan.run();await A.Calib.run(A.Sig.focus,A.UI.tf());lastScan=Date.now();log('Quét xong, theo dõi:',A.Sig.focus.map(A.Fmt.coin).join(', '))}
+      if(Date.now()-lastScan>5*6e4){await A.Scan.run();await A.Calib.run(A.Sig.focus);lastScan=Date.now();log('Quét xong, theo dõi:',A.Sig.focus.map(A.Fmt.coin).join(', '))}
       await A.Sig.refresh();
       const sig=Object.entries(A.Sig.state).filter(([,x])=>x.ok&&x.tr&&A.Book.isOpen(x.tr.L)).map(([s,x])=>`${A.Fmt.coin(s)} ${x.tr.sig.side} (${x.tr.L.st==='P'?'chờ khớp':'đã khớp'})`);
       log(`Lượt ${n}: ${sig.length?'tín hiệu '+sig.join(', '):'chưa có tín hiệu'} · lệnh mở ${A.Book.data.orders.filter(A.Book.isOpen).length}`);

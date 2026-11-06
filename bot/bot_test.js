@@ -22,7 +22,7 @@ const fetch=async(u,o={})=>{const url=new URL(u);
     if(url.pathname.includes('ticker/price'))return J(Object.keys(DS).map(s=>({symbol:s,price:String(DS[s]['15m'].slice(-1)[0][4])})));
     if(url.pathname.includes('ticker/24hr'))return J(Object.keys(DS).map(s=>({symbol:s,lastPrice:String(DS[s]['15m'].slice(-1)[0][4]),priceChangePercent:'1.2'})))}
   return J({},404)};
-const fakeSig=A=>{const tr0=A.Sig.track.bind(A.Sig);A.Sig.track=function(D,impl,P){if(D!==A.Data.cache['BTCUSDT|15m'])return tr0(D,impl,P);const i=D.c.length-3,c=D.c[D.c.length-1],e=c*0.995,R=c*0.006;
+const fakeSig=A=>{const tr0=A.Sig.track.bind(A.Sig);A.Sig.track=function(D,impl,P){if(!Object.keys(A.Data.cache).some(k=>k.startsWith('BTCUSDT|')&&A.Data.cache[k]===D))return tr0(D,impl,P);/* BTC ở bất kỳ khung nào */const i=D.c.length-3,c=D.c[D.c.length-1],e=c*0.995,R=c*0.006;
   return{i,sig:{side:'LONG',dirN:1,entry:e,sl:e-R,R,tp1:e+1.5*R,tp2:e+3*R,feat:{}},L:{st:'P',i,e,sl:e-R,tp1:e+1.5*R,tp2:e+3*R,R,dir:1,fill:null,res:null}}}};
 let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,d!==undefined?JSON.stringify(d).slice(0,400):'')}};
 (async()=>{

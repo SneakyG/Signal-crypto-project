@@ -10,20 +10,21 @@ const Scan={
   universe(){const o=Strat.isAuto()?null:Strat.I().only;return o||this.POP},
   cands(s){
     if(!Strat.isAuto())return[Strat.cur()];
-    return Strat.usable().filter(v=>Strat.fits(v,s,UI.tf()))},
+    return Strat.usable().filter(v=>Strat.fits(v,s,Strat.tfOf(v)))}, // mỗi chiến lược thử trên khung của nó (RSI(2) 1h, SMC theo ô Khung nến…)
   score(r){return r&&r.n!=null?(r.n>=this.MINN?1e4:0)+r.wil*10+r.avg:-1},
   async run(){
     if(this.busy)return;this.busy=true;
-    const tf=UI.tf(),todo=this.universe().slice(),mode=Strat.active;
+    const todo=this.universe().slice(),mode=Strat.active;
     this.done=0;this.total=todo.length;this.paintBar();
     const worker=async()=>{
       while(todo.length){
         const s=todo.shift();
         try{
-          const D=await Sig.series(s,tf,3000),last=D.t[D.c.length-2];let top=null;
+          const DS={};let top=null;
           for(const v of this.cands(s)){
+            const tf=Strat.tfOf(v),D=DS[tf]||(DS[tf]=await Sig.series(s,tf,3000)),last=D.t[D.c.length-2];
             const k=`${v.id}|${tf}|${last}|${JSON.stringify(v.params)}`,c=this.res[s+'#'+v.id];
-            const r=c&&c.k===k?c:(this.res[s+'#'+v.id]={k,v:v.id,...Backtest.pack(Backtest.run(D,Strat.impl[v.base],v.params))}); // chỉ tính lại khi có nến mới
+            const r=c&&c.k===k?c:(this.res[s+'#'+v.id]={k,v:v.id,tf,...Backtest.pack(Backtest.run(D,Strat.impl[v.base],v.params))}); // chỉ tính lại khi có nến mới
             if(!top||this.score(r)>this.score(top))top=r;
             await sleep(0)}
           if(top){this.res[s]={...top,strat:top.v};this.best[s]=top.v}
@@ -47,6 +48,6 @@ const Scan={
     $('nr').textContent=rows.length;
     put(el,rows.length?`<div class="rank">${rows.map((r,i)=>{
       const sel=Sig.focus.includes(r.s),w=Math.max(2,Math.min(100,r.wil)),v=Strat.byId(r.strat);
-      return`<div class="rk2${sel?' sel':''}"><b><span class="rkn">${i+1}</span>${coinLink(r.s,UI.tf())}</b><div class="bar2"><i style="width:${w}%"></i></div><span>${r.n<this.MINN?`<span class="mut">chưa đủ mẫu (${r.n} lệnh)</span>`:`${r.n} lệnh, thắng ${r.win.toFixed(0)}% (cận dưới ${r.wil.toFixed(0)}%), ${r.avg>=0?'+':''}${r.avg.toFixed(2)}R`}${Strat.isAuto()&&v?`<span class="sub">${esc(Strat.label(v))}</span>`:''}</span></div>`}).join('')}</div>`
+      return`<div class="rk2${sel?' sel':''}"><b><span class="rkn">${i+1}</span>${coinLink(r.s,r.tf||UI.tf())}</b><div class="bar2"><i style="width:${w}%"></i></div><span>${r.n<this.MINN?`<span class="mut">chưa đủ mẫu (${r.n} lệnh)</span>`:`${r.n} lệnh, thắng ${r.win.toFixed(0)}% (cận dưới ${r.wil.toFixed(0)}%), ${r.avg>=0?'+':''}${r.avg.toFixed(2)}R`}${Strat.isAuto()&&v?`<span class="sub">${esc(Strat.label(v))}</span>`:''}</span></div>`}).join('')}</div>`
       :'<div class="empty">Đang quét lần đầu…</div>')}
 };

@@ -8,9 +8,9 @@
 <meta name="description" content="Bảng tín hiệu crypto realtime: đa khung 1D/4h, SMC/ICT, sổ lệnh và backtest.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/base.css?v=20261106">
-<link rel="stylesheet" href="css/layout.css?v=20261106">
-<link rel="stylesheet" href="css/components.css?v=20261106">
+<link rel="stylesheet" href="css/base.css?v=20261106b">
+<link rel="stylesheet" href="css/layout.css?v=20261106b">
+<link rel="stylesheet" href="css/components.css?v=20261106b">
 </head>
 <body>
 <header class="bar">
@@ -35,7 +35,7 @@
   <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, ICT BTC Scalper v2 dùng 5m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–7 để chuyển trang.</p></div>
   <div class="strip ctl">
     <label>Chiến lược<select id="strat" style="min-width:260px"></select></label>
-    <label>Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
+    <label title="Áp dụng cho chiến lược không cố định khung (SMC / ICT). RSI(2) luôn chạy khung 1h, ICT BTC Scalper luôn chạy 5m, kể cả ở chế độ Tự động.">Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
     <label>Vốn (USDT)<input id="bal" type="number" value="1000" min="10" style="width:120px"></label>
     <label title="Một lệnh chạm cắt lỗ thì mất bấy nhiêu % vốn (phí tính riêng). Vốn 1000$, 5% → mỗi lệnh thua mất 50$. Áp dụng cho mọi chiến lược.">Rủi ro mỗi lệnh (% vốn)<input id="risk" type="number" value="5" min="0.1" max="20" step="0.1" style="width:110px"></label>
     <label>Số lệnh tối đa<select id="slots"><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option></select></label>
@@ -234,46 +234,46 @@
     <p class="note">Giá lấy từ Binance Futures (dự phòng Spot). Mọi dữ liệu lưu trong trình duyệt của bạn.</p>
     <div class="ctl"><button class="ghost" id="resetbook">Xóa Sổ lệnh hôm nay</button><button class="ghost" id="resetlab">Đặt lại chiến lược về bản gốc</button></div>
   </section>
-  <p class="note mut" id="ver" style="text-align:center">Phiên bản giao diện 20261106. Điện thoại hiện số khác số này là đang dùng bản cũ: tải lại trang (kéo xuống) hoặc chờ vài phút sau khi cập nhật GitHub.</p>
+  <p class="note mut" id="ver" style="text-align:center">Phiên bản giao diện 20261106b. Điện thoại hiện số khác số này là đang dùng bản cũ: tải lại trang (kéo xuống) hoặc chờ vài phút sau khi cập nhật GitHub.</p>
 </section>
 
 </main>
 <div id="toasts"></div>
 
-<script src="js/core/util.js?v=20261106"></script>
-<script src="js/core/indicators.js?v=20261106"></script>
-<script src="js/core/data.js?v=20261106"></script>
-<script src="js/core/htf.js?v=20261106"></script>
-<script src="js/strategies/registry.js?v=20261106"></script>
-<script src="js/strategies/smc.js?v=20261106"></script>
-<script src="js/strategies/ema.js?v=20261106"></script>
-<script src="js/strategies/rsi2.js?v=20261106"></script>
-<script src="js/strategies/ict2.js?v=20261106"></script>
-<script src="js/trading/lifecycle.js?v=20261106"></script>
-<script src="js/trading/backtest.js?v=20261106"></script>
-<script src="js/trading/sizing.js?v=20261106"></script>
-<script src="js/trading/book.js?v=20261106"></script>
-<script src="js/trading/scan.js?v=20261106"></script>
-<script src="js/trading/calib.js?v=20261106"></script>
-<script src="js/learning/learner.js?v=20261106"></script>
-<script src="js/learning/autolab.js?v=20261106"></script>
-<script src="js/services/telegram.js?v=20261106"></script>
-<script src="js/services/sync.js?v=20261106"></script>
-<script src="js/services/notify.js?v=20261106"></script>
-<script src="js/services/xlsx.js?v=20261106"></script>
-<script src="js/services/news.js?v=20261106"></script>
-<script src="js/ui/signals.js?v=20261106"></script>
-<script src="js/ui/tick.js?v=20261106"></script>
-<script src="js/ui/chart-ana.js?v=20261106"></script>
-<script src="js/ui/chart.js?v=20261106"></script>
-<script src="js/ui/book-page.js?v=20261106"></script>
-<script src="js/ui/analysis.js?v=20261106"></script>
-<script src="js/ui/backtest-page.js?v=20261106"></script>
-<script src="js/ui/news-page.js?v=20261106"></script>
-<script src="js/ui/lab.js?v=20261106"></script>
-<script src="js/ui/settings.js?v=20261106"></script>
-<script src="js/ui/office.js?v=20261106"></script>
-<script src="js/ui/office3d.js?v=20261106"></script>
-<script src="js/main.js?v=20261106"></script>
+<script src="js/core/util.js?v=20261106b"></script>
+<script src="js/core/indicators.js?v=20261106b"></script>
+<script src="js/core/data.js?v=20261106b"></script>
+<script src="js/core/htf.js?v=20261106b"></script>
+<script src="js/strategies/registry.js?v=20261106b"></script>
+<script src="js/strategies/smc.js?v=20261106b"></script>
+<script src="js/strategies/ema.js?v=20261106b"></script>
+<script src="js/strategies/rsi2.js?v=20261106b"></script>
+<script src="js/strategies/ict2.js?v=20261106b"></script>
+<script src="js/trading/lifecycle.js?v=20261106b"></script>
+<script src="js/trading/backtest.js?v=20261106b"></script>
+<script src="js/trading/sizing.js?v=20261106b"></script>
+<script src="js/trading/book.js?v=20261106b"></script>
+<script src="js/trading/scan.js?v=20261106b"></script>
+<script src="js/trading/calib.js?v=20261106b"></script>
+<script src="js/learning/learner.js?v=20261106b"></script>
+<script src="js/learning/autolab.js?v=20261106b"></script>
+<script src="js/services/telegram.js?v=20261106b"></script>
+<script src="js/services/sync.js?v=20261106b"></script>
+<script src="js/services/notify.js?v=20261106b"></script>
+<script src="js/services/xlsx.js?v=20261106b"></script>
+<script src="js/services/news.js?v=20261106b"></script>
+<script src="js/ui/signals.js?v=20261106b"></script>
+<script src="js/ui/tick.js?v=20261106b"></script>
+<script src="js/ui/chart-ana.js?v=20261106b"></script>
+<script src="js/ui/chart.js?v=20261106b"></script>
+<script src="js/ui/book-page.js?v=20261106b"></script>
+<script src="js/ui/analysis.js?v=20261106b"></script>
+<script src="js/ui/backtest-page.js?v=20261106b"></script>
+<script src="js/ui/news-page.js?v=20261106b"></script>
+<script src="js/ui/lab.js?v=20261106b"></script>
+<script src="js/ui/settings.js?v=20261106b"></script>
+<script src="js/ui/office.js?v=20261106b"></script>
+<script src="js/ui/office3d.js?v=20261106b"></script>
+<script src="js/main.js?v=20261106b"></script>
 </body>
 </html>

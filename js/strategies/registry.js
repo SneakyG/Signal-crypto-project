@@ -26,6 +26,9 @@ const Strat={
     if(this.isAuto()){const id=typeof Scan!=='undefined'&&Scan.best[s];return this.byId(id)||this.byId('rsi2-v1')}
     return this.cur()},
   // Chiến lược có áp dụng cho coin s và khung tf không (BTC x100 chỉ dùng cho BTC khung 15m)
+  // Khung nến của một phiên bản: chiến lược có khung cố định (RSI(2) 1h, ICT BTC Scalper 5m) luôn chạy đúng khung đó, kể cả ở chế độ Tự động;
+  // chiến lược không cố định khung (SMC/ICT) dùng ô "Khung nến vào lệnh"
+  tfOf(v){const I=this.impl[v.base];return I.tf||UI.tf()},
   fits(v,s,tf){const I=this.impl[v.base];return(!I.only||I.only.includes(s))&&(!I.tf||!tf||I.tf===tf)},
   cur(){return this.byId(this.active)||this.byId('rsi2-v1')},
   I(){return this.impl[this.cur().base]},

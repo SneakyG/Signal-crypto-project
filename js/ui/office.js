@@ -28,7 +28,7 @@ const Office={
     {id:'smc',room:'ana',name:'Anh Minh SMC',role:'Chuyên viên SMC / ICT',go:'main',look:{hair:'#4b2e1e',skin:'#e0ac69',shirt:'#8b5cf6',acc:'glasses'},screen:'zone',
      job:'Mô hình Unicorn: thuận cấu trúc 1H/4H, trong killzone chờ quét đáy/đỉnh phiên Á hoặc giờ trước tại vùng OB/FVG khung lớn → MSS thân lớn để lại FVG → lệnh chờ ở mép FVG trùng Breaker Block. TP1 1–1,5R, TP2 2,5–3R.'},
     {id:'btc100',room:'ana',name:'Xạ thủ Bảo',role:'Xạ thủ ICT BTC Scalper v2',go:'main',look:{hair:'#0f172a',skin:'#c68642',shirt:'#ef4444',acc:'cap',capc:'#111827'},screen:'scope',
-     job:'Lướt sóng BTC 5m theo ICT 2022: trong killzone, chờ quét thanh khoản tại vùng OB/FVG 1h → MSS thân lớn để lại FVG → lệnh chờ ở mép FVG. Rủi ro 1%/lệnh, ký quỹ ≤ 20% tài khoản.'},
+     job:'Lướt sóng BTC 5m theo ICT 2022: trong killzone, chờ quét thanh khoản tại vùng OB/FVG 1h → MSS thân lớn để lại FVG → lệnh chờ ở mép FVG. Rủi ro theo ô chung (mặc định 5%), ký quỹ ≤ 20% tài khoản.'},
     {id:'trader',room:'desk',name:'Bé Lan Đặt Lệnh',role:'Nhân viên đặt lệnh',go:'book',look:{hair:'#7c2d12',skin:'#f1c27d',shirt:'#22c55e',acc:'headset'},screen:'orders',
      job:'Ghi nhận lệnh vào Sổ lệnh (bấm tay hoặc tự động), theo dõi khớp lệnh realtime 3 giây/lần. Không gửi lệnh lên sàn.'},
     {id:'risk',room:'desk',name:'Chú Hùng Rủi Ro',role:'Quản lý rủi ro',go:'main',look:{hair:'#9ca3af',skin:'#e0ac69',shirt:'#1f2937',tie:'#ef4444',acc:'glasses'},screen:'gauge',

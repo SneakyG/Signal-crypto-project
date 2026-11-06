@@ -12,12 +12,12 @@
                  Hủy lệnh chờ nếu giá chạy tới +1,5R trước khi quay lại FVG, hoặc quá 20 nến 5m chưa khớp.
    QUẢN LÝ: SL = đáy nến quét − 0,05×ATR; nếu SL hẹp hơn 0,15% thì nới ra 0,20%. TP1 +1,5R chốt 50%, dời SL về giá vào + phí (0,1%);
             TP2 +3R chốt nốt. Khối lượng = vốn × rủi ro% ÷ |Entry − SL|; đòn bẩy tự tính để ký quỹ ≤ 20% tài khoản.
-   Mặc định rủi ro 1%/lệnh (khi chọn chiến lược này bảng gợi ý đổi Rủi ro mỗi lệnh về 1%). */
+   Rủi ro mỗi lệnh dùng chung ô Rủi ro (mặc định 5%) như mọi chiến lược. */
 Strat.impl.ict2={
   short:'ICT BTC Scalper v2',
   name:'Institutional ICT BTC Scalper v2.0 (1h POI → 5m)',
-  only:['BTCUSDT'],tf:'5m',margCap:0.2,cancelTp1:true,profile:{risk:1},sweepAlert:true,
-  desc:'Chỉ BTC, khung 5m, theo ICT 2022 Mentorship. Trong killzone London / New York AM: nến 5m quét thanh khoản (đáy/đỉnh phiên Á, swing gần nhất, PDL/PDH) tại vùng OB/FVG khung 1h → trong 8 nến có MSS thân lớn (≥ 1 ATR) để lại FVG ≥ 0,1 ATR → lệnh chờ ở mép gần của FVG, trong vùng Discount/Premium. SL ngoài cú quét (tối thiểu 0,2% nếu quá hẹp), TP1 1,5R chốt 50% rồi dời SL về giá vào + phí, TP2 3R. Rủi ro mặc định 1%/lệnh, ký quỹ ≤ 20% tài khoản.',
+  only:['BTCUSDT'],tf:'5m',margCap:0.2,cancelTp1:true,sweepAlert:true,
+  desc:'Chỉ BTC, khung 5m, theo ICT 2022 Mentorship. Trong killzone London / New York AM: nến 5m quét thanh khoản (đáy/đỉnh phiên Á, swing gần nhất, PDL/PDH) tại vùng OB/FVG khung 1h → trong 8 nến có MSS thân lớn (≥ 1 ATR) để lại FVG ≥ 0,1 ATR → lệnh chờ ở mép gần của FVG, trong vùng Discount/Premium. SL ngoài cú quét (tối thiểu 0,2% nếu quá hẹp), TP1 1,5R chốt 50% rồi dời SL về giá vào + phí, TP2 3R. Rủi ro theo ô Rủi ro mỗi lệnh (mặc định 5%), ký quỹ ≤ 20% tài khoản.',
   defaults:{k:2,sweepAtr:0.05,mssAtr:1.0,dispBody:0.5,fvgAtr:0.10,mssBars:8,slBuf:0.05,minSl:0.15,setSl:0.20,poiAge:120,beOff:0.1,tp1R:1.5,tp2R:3,W:20,maxHold:288},
   labels:['Trong killzone London / New York AM','Chạm vùng quan tâm 1h (OB / FVG) hoặc quét PDL/PDH','Quét thanh khoản 5m (≥ 0,05 ATR) rồi đóng cửa quay lại','MSS thân lớn trong 8 nến, quãng ≥ 1 ATR','Để lại FVG ≥ 0,10 ATR chưa lấp','Giá vào ở Discount (LONG) / Premium (SHORT)'],
   inKZ(t){const d=new Date(t),m=d.getUTCHours()*60+d.getUTCMinutes();return(m>=420&&m<600)||(m>=750&&m<900)}, // 07:00–10:00 và 12:30–15:00 UTC

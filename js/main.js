@@ -14,7 +14,7 @@
     const b=document.querySelectorAll('#nav button')[+e.key-1];if(b)b.click()});
   setInterval(()=>Tick.run(),3000);Tick.run();setInterval(()=>NetBar.paint(),1000);
   await Sig.refresh();                                   // hiện nhanh với danh sách coin đã lưu
-  const scan=()=>Scan.run().then(()=>Sig.refresh()).then(()=>Calib.run(Sig.focus,UI.tf())).then(()=>Sig.refresh()); // quét chọn coin → tối ưu SL/TP → làm mới
+  const scan=()=>Scan.run().then(()=>Sig.refresh()).then(()=>Calib.run(Sig.focus)).then(()=>Sig.refresh()); // quét chọn coin → tối ưu SL/TP → làm mới
   scan();
   setInterval(()=>Sig.refresh(),15000);
   setInterval(scan,300000);
