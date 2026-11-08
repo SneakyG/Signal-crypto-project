@@ -8,9 +8,9 @@
 <meta name="description" content="Bảng tín hiệu crypto realtime: đa khung 1D/4h, SMC/ICT, sổ lệnh và backtest.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/base.css?v=20261106c">
-<link rel="stylesheet" href="css/layout.css?v=20261106c">
-<link rel="stylesheet" href="css/components.css?v=20261106c">
+<link rel="stylesheet" href="css/base.css?v=20261106e">
+<link rel="stylesheet" href="css/layout.css?v=20261106e">
+<link rel="stylesheet" href="css/components.css?v=20261106e">
 </head>
 <body>
 <header class="bar">
@@ -35,7 +35,7 @@
   <div class="ph"><h1>Bảng tín hiệu</h1><p>Khung 1D/4h cho hướng, khung nhỏ vào lệnh (RSI(2) dùng 1h, ICT BTC Scalper v2 dùng 5m). Đòn bẩy tự tính theo khoảng cắt lỗ; tổng ký quỹ không vượt vốn. Bảng tự quét 30 coin phổ biến và chọn tối đa 10 coin có tỉ lệ thắng cao nhất. Phím tắt 1–7 để chuyển trang.</p></div>
   <div class="strip ctl">
     <label>Chiến lược<select id="strat" style="min-width:260px"></select></label>
-    <label title="Áp dụng cho chiến lược không cố định khung (SMC / ICT). RSI(2) luôn chạy khung 1h, ICT BTC Scalper luôn chạy 5m, kể cả ở chế độ Tự động.">Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
+    <label title="Áp dụng cho chiến lược không cố định khung (SMC / ICT). RSI(2) và SMC + ICT Confluence luôn chạy khung 1h, ICT BTC Scalper luôn chạy 5m, kể cả ở chế độ Tự động.">Khung nến vào lệnh<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option></select></label>
     <label>Vốn (USDT)<input id="bal" type="number" value="1000" min="10" style="width:120px"></label>
     <label title="Một lệnh chạm cắt lỗ thì mất bấy nhiêu % vốn (phí tính riêng). Vốn 1000$, 5% → mỗi lệnh thua mất 50$. Áp dụng cho mọi chiến lược.">Rủi ro mỗi lệnh (% vốn)<input id="risk" type="number" value="5" min="0.1" max="20" step="0.1" style="width:110px"></label>
     <label>Số lệnh tối đa<select id="slots"><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option></select></label>
@@ -184,6 +184,7 @@
     <h2>Mô tả chi tiết các chiến lược</h2>
     <p class="note"><b>Hồi quy RSI(2) Connors đa khung (khung 1h) — thay cho chiến lược EMA cũ:</b> 1D/4h cho hướng. Khung 1h: giá cùng phía SMA200 và RSI(2) dưới 10 (mua) / trên 90 (bán) thì đặt lệnh chờ hồi thêm 0,5 ATR. Cắt lỗ 3 ATR, TP1 1,5R chốt 50% rồi dời cắt lỗ về giá vào, TP2 3–4R; phần còn lại sau TP1 thoát khi giá hồi về SMA5. <b>Kiểm chứng trên dữ liệu thật Binance Futures</b> (13 coin lớn, ~208 ngày tới 03/11/2026): 598 lệnh, chạm TP1 29%, lãi kỳ vọng ≈ 0R/lệnh sau phí (hòa vốn).</p>
     <p class="note"><b>SMC / ICT High Winrate (Unicorn):</b> mọi coin, khuyến nghị khung 5m. 7 điều kiện bắt buộc, thiếu 1 là bỏ lệnh: (1) cấu trúc khung <b>1H và 4H</b> cùng hướng; (2) nến quét chạm <b>OB / FVG 1H hoặc 4H</b> còn hiệu lực, hoặc quét PDH/PDL; (3) trong <b>killzone</b> London 14:00–17:00 hoặc New York AM 19:30–22:30 giờ VN; (4) nến <b>quét</b> đáy/đỉnh phiên Á hoặc đáy/đỉnh giờ trước rồi đóng cửa quay lại; (5) <b>MSS</b>: nến thân ≥ 1 ATR phá swing đối ứng; (6) nhịp phá để lại <b>FVG</b> chưa lấp; (7) <b>Unicorn</b>: FVG trùng Breaker Block, hoặc giá vào ở Discount (LONG) / Premium (SHORT). Limit ở mép gần FVG; cắt lỗ ngoài râu quét + 0,05% giá (tối thiểu 0,2% để phí không ăn hết lợi thế). <b>TP1 1–1,5R</b> (đỉnh/đáy nhịp phá nếu gần hơn) chốt 50% rồi dời cắt lỗ về giá vào + phí; <b>TP2 2,5–3R</b> (thanh khoản đối ứng 1H/ngày nếu gần hơn). Hủy lệnh chờ khi giá chạy tới TP1 trước. <b>Kiểm chứng 5 coin lớn, khung 5m, 104 ngày (23/07–04/11/2026)</b>: 52 lệnh, 11 chạm TP2 (21%), 30 chạm TP1 (58%), 21 hòa vốn, 20 thua; không thua 62%; +4,8R sau phí (+0,09R mỗi lệnh). Lợi thế còn mỏng và mẫu nhỏ, chưa đạt mức thắng 70–80%.</p>
+    <p class="note"><b>SMC + ICT Confluence:</b> mọi coin, luôn chạy <b>khung 1h</b> (kiểm chứng thực tế: 15m và 5m lỗ sau phí). 8 yếu tố bắt buộc: (1) thuận xu hướng <b>4h/1D</b>; (2) biến động bình thường (ATR 0,6–2,5× trung vị); (3) <b>quét bể thanh khoản</b> (đỉnh/đáy bằng nhau, swing cũ ≥ 20 nến, PDH/PDL) rồi đóng cửa quay lại; (4) <b>phá cấu trúc</b> trong 15 nến, nhịp phá có nến thân ≥ 1 ATR; (5) khối lượng ≥ 1,3× trung bình; (6) để lại <b>FVG / Order Block</b> chưa chạm; (7) vùng đó trùng <b>OTE 62–79%</b>; (8) còn ≥ 2R tới thanh khoản đối ứng. Limit ở mép vùng, SL ngoài cú quét + 0,1 ATR. TP1 đỉnh/đáy nhịp phá chốt 50% rồi dời SL về giá vào + phí, TP2 thanh khoản đối ứng (2,5–3R). Thoát sớm khi CHoCH ngược chiều hoặc xu hướng lớn đảo. Giới hạn: chỉ dựa trên nến và khối lượng, không thấy sổ lệnh / tin tức; dễ bị quét giả khi thị trường đi ngang.</p>
     <p class="note"><b>ICT BTC Scalper v2.0 (5m):</b> chỉ BTC, theo mô hình ICT 2022. 6 điều kiện bắt buộc theo thứ tự: (1) nến nằm trong <b>killzone</b> London 14–17h hoặc New York AM 19:30–22h giờ VN; (2) giá chạm <b>Order Block / FVG khung 1h</b> hoặc quét đỉnh/đáy ngày hôm trước; (3) nến 5m <b>quét</b> đáy/đỉnh phiên Á, swing gần nhất hoặc PDL/PDH ≥ 0,05 ATR rồi đóng cửa quay lại; (4) trong 8 nến có <b>MSS</b>: nến thân lớn đóng cửa phá đỉnh/đáy đối ứng, cách cú quét ≥ 1 ATR; (5) nhịp phá để lại <b>FVG ≥ 0,10 ATR</b> chưa lấp; (6) giá vào ở mép gần FVG nằm trong vùng <b>Discount</b> (LONG) / <b>Premium</b> (SHORT) của nhịp. Cắt lỗ ngoài râu quét 0,05 ATR, nếu hẹp hơn 0,15% thì nới ra 0,20%. TP1 1,5R chốt 50% và dời cắt lỗ về giá vào + phí, TP2 3R chốt hết. Lệnh chờ hủy sau 20 nến hoặc khi giá chạy tới TP1 trước. Rủi ro theo ô Rủi ro mỗi lệnh (mặc định 5%), ký quỹ tối đa 20% tài khoản. <b>Kiểm chứng BTCUSDT Futures 104 ngày (23/07–04/11/2026)</b>: 32 lệnh khớp, 9 thắng / 4 hòa vốn / 19 thua (thắng 28%), trước phí +4,6R nhưng sau phí 0,05%/chiều còn −9,8R (−0,31R mỗi lệnh) vì cắt lỗ trung bình chỉ 0,25% nên phí ăn ≈ 0,4R mỗi lệnh. Chưa có lợi thế: nên theo dõi thêm trước khi dùng tiền thật.</p>
   </section>
 </section>
@@ -234,46 +235,47 @@
     <p class="note">Giá lấy từ Binance Futures (dự phòng Spot). Mọi dữ liệu lưu trong trình duyệt của bạn.</p>
     <div class="ctl"><button class="ghost" id="resetbook">Xóa Sổ lệnh hôm nay</button><button class="ghost" id="resetlab">Đặt lại chiến lược về bản gốc</button></div>
   </section>
-  <p class="note mut" id="ver" style="text-align:center">Phiên bản giao diện 20261106c. Điện thoại hiện số khác số này là đang dùng bản cũ: tải lại trang (kéo xuống) hoặc chờ vài phút sau khi cập nhật GitHub.</p>
+  <p class="note mut" id="ver" style="text-align:center">Phiên bản giao diện 20261106e. Điện thoại hiện số khác số này là đang dùng bản cũ: tải lại trang (kéo xuống) hoặc chờ vài phút sau khi cập nhật GitHub.</p>
 </section>
 
 </main>
 <div id="toasts"></div>
 
-<script src="js/core/util.js?v=20261106c"></script>
-<script src="js/core/indicators.js?v=20261106c"></script>
-<script src="js/core/data.js?v=20261106c"></script>
-<script src="js/core/htf.js?v=20261106c"></script>
-<script src="js/strategies/registry.js?v=20261106c"></script>
-<script src="js/strategies/smc.js?v=20261106c"></script>
-<script src="js/strategies/ema.js?v=20261106c"></script>
-<script src="js/strategies/rsi2.js?v=20261106c"></script>
-<script src="js/strategies/ict2.js?v=20261106c"></script>
-<script src="js/trading/lifecycle.js?v=20261106c"></script>
-<script src="js/trading/backtest.js?v=20261106c"></script>
-<script src="js/trading/sizing.js?v=20261106c"></script>
-<script src="js/trading/book.js?v=20261106c"></script>
-<script src="js/trading/scan.js?v=20261106c"></script>
-<script src="js/trading/calib.js?v=20261106c"></script>
-<script src="js/learning/learner.js?v=20261106c"></script>
-<script src="js/learning/autolab.js?v=20261106c"></script>
-<script src="js/services/telegram.js?v=20261106c"></script>
-<script src="js/services/sync.js?v=20261106c"></script>
-<script src="js/services/notify.js?v=20261106c"></script>
-<script src="js/services/xlsx.js?v=20261106c"></script>
-<script src="js/services/news.js?v=20261106c"></script>
-<script src="js/ui/signals.js?v=20261106c"></script>
-<script src="js/ui/tick.js?v=20261106c"></script>
-<script src="js/ui/chart-ana.js?v=20261106c"></script>
-<script src="js/ui/chart.js?v=20261106c"></script>
-<script src="js/ui/book-page.js?v=20261106c"></script>
-<script src="js/ui/analysis.js?v=20261106c"></script>
-<script src="js/ui/backtest-page.js?v=20261106c"></script>
-<script src="js/ui/news-page.js?v=20261106c"></script>
-<script src="js/ui/lab.js?v=20261106c"></script>
-<script src="js/ui/settings.js?v=20261106c"></script>
-<script src="js/ui/office.js?v=20261106c"></script>
-<script src="js/ui/office3d.js?v=20261106c"></script>
-<script src="js/main.js?v=20261106c"></script>
+<script src="js/core/util.js?v=20261106e"></script>
+<script src="js/core/indicators.js?v=20261106e"></script>
+<script src="js/core/data.js?v=20261106e"></script>
+<script src="js/core/htf.js?v=20261106e"></script>
+<script src="js/strategies/registry.js?v=20261106e"></script>
+<script src="js/strategies/smc.js?v=20261106e"></script>
+<script src="js/strategies/ema.js?v=20261106e"></script>
+<script src="js/strategies/rsi2.js?v=20261106e"></script>
+<script src="js/strategies/ict2.js?v=20261106e"></script>
+<script src="js/strategies/conf.js?v=20261106e"></script>
+<script src="js/trading/lifecycle.js?v=20261106e"></script>
+<script src="js/trading/backtest.js?v=20261106e"></script>
+<script src="js/trading/sizing.js?v=20261106e"></script>
+<script src="js/trading/book.js?v=20261106e"></script>
+<script src="js/trading/scan.js?v=20261106e"></script>
+<script src="js/trading/calib.js?v=20261106e"></script>
+<script src="js/learning/learner.js?v=20261106e"></script>
+<script src="js/learning/autolab.js?v=20261106e"></script>
+<script src="js/services/telegram.js?v=20261106e"></script>
+<script src="js/services/sync.js?v=20261106e"></script>
+<script src="js/services/notify.js?v=20261106e"></script>
+<script src="js/services/xlsx.js?v=20261106e"></script>
+<script src="js/services/news.js?v=20261106e"></script>
+<script src="js/ui/signals.js?v=20261106e"></script>
+<script src="js/ui/tick.js?v=20261106e"></script>
+<script src="js/ui/chart-ana.js?v=20261106e"></script>
+<script src="js/ui/chart.js?v=20261106e"></script>
+<script src="js/ui/book-page.js?v=20261106e"></script>
+<script src="js/ui/analysis.js?v=20261106e"></script>
+<script src="js/ui/backtest-page.js?v=20261106e"></script>
+<script src="js/ui/news-page.js?v=20261106e"></script>
+<script src="js/ui/lab.js?v=20261106e"></script>
+<script src="js/ui/settings.js?v=20261106e"></script>
+<script src="js/ui/office.js?v=20261106e"></script>
+<script src="js/ui/office3d.js?v=20261106e"></script>
+<script src="js/main.js?v=20261106e"></script>
 </body>
 </html>

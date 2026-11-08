@@ -37,7 +37,7 @@ const Strat={
   label(v){const t={base:'',learning:' (đang học)',saved70:' ✓70%',saved90:' ★90%'}[v.status]||'';return`${this.impl[v.base].short} v${v.ver}${t}`},
   // Các phiên bản được phép chọn làm chiến lược chính (không gồm bản đang học vì tham số của nó còn thay đổi)
   usable(){return this.list.filter(v=>v.status!=='learning'&&!this.impl[v.base].hidden).sort((a,b)=>this.ORDER.indexOf(a.base)-this.ORDER.indexOf(b.base)||a.ver-b.ver)},
-  ORDER:['rsi2','smc','ict2','ema'],
+  ORDER:['rsi2','smc','conf','ict2','ema'],
   clone(v,status){
     const dead=Store.get('labDead',[]).filter(id=>id.startsWith(v.base+'-v')).map(id=>+id.split('-v')[1]||0),ver=Math.max(...this.list.filter(x=>x.base===v.base).map(x=>x.ver),...dead)+1;
     const c={id:v.base+'-v'+ver,base:v.base,ver,rev:this.impl[v.base].rev||1,status,params:{...v.params},parent:v.id,created:Date.now(),stats:null,log:[]};

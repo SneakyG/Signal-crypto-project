@@ -12,26 +12,31 @@ const Scan={
     if(!Strat.isAuto())return[Strat.cur()];
     return Strat.usable().filter(v=>Strat.fits(v,s,Strat.tfOf(v)))}, // mỗi chiến lược thử trên khung của nó (RSI(2) 1h, SMC theo ô Khung nến…)
   score(r){return r&&r.n!=null?(r.n>=this.MINN?1e4:0)+r.wil*10+r.avg:-1},
+  // Đổi chiến lược / khung khi đang quét: dừng lượt quét cũ ngay (không chờ quét hết 30 coin) rồi quét lại theo thiết lập mới
+  gen:0,
   async run(){
-    if(this.busy)return;this.busy=true;
+    const gen=++this.gen;
+    if(this.busy){while(this.busy)await sleep(40);if(gen!==this.gen)return} // có lượt mới hơn chen vào thì nhường cho lượt đó
+    this.busy=true;const live=()=>gen===this.gen;
     const todo=this.universe().slice(),mode=Strat.active;
     this.done=0;this.total=todo.length;this.paintBar();
     const worker=async()=>{
-      while(todo.length){
+      while(todo.length&&live()){
         const s=todo.shift();
         try{
           const DS={};let top=null;
           for(const v of this.cands(s)){
+            if(!live())break;
             const tf=Strat.tfOf(v),D=DS[tf]||(DS[tf]=await Sig.series(s,tf,3000)),last=D.t[D.c.length-2];
             const k=`${v.id}|${tf}|${last}|${JSON.stringify(v.params)}`,c=this.res[s+'#'+v.id];
             const r=c&&c.k===k?c:(this.res[s+'#'+v.id]={k,v:v.id,tf,...Backtest.pack(Backtest.run(D,Strat.impl[v.base],v.params))}); // chỉ tính lại khi có nến mới
             if(!top||this.score(r)>this.score(top))top=r;
             await sleep(0)}
-          if(top){this.res[s]={...top,strat:top.v};this.best[s]=top.v}
+          if(top&&live()){this.res[s]={...top,strat:top.v};this.best[s]=top.v}
         }catch(e){if(!this.res[s])this.res[s]={err:1}}
-        this.done++;this.paintBar()}};
-    try{await Promise.all([worker(),worker(),worker()]);if(mode===Strat.active)this.pick()}
-    finally{this.busy=false;this.at=Date.now();this.paintBar();this.renderRank()}},
+        if(live()){this.done++;this.paintBar()}}};
+    try{await Promise.all([worker(),worker(),worker()]);if(live()&&mode===Strat.active)this.pick()}
+    finally{this.busy=false;if(live()){this.at=Date.now();this.paintBar();this.renderRank()}}},
   sorted(){return this.universe().filter(s=>this.res[s]&&this.res[s].n!=null).map(s=>({s,...this.res[s]})).sort((a,b)=>this.score(b)-this.score(a))},
   pick(){
     const K=Strat.isAuto()?UI.topk():Math.min(UI.topk(),this.universe().length),f=this.sorted().filter(r=>r.n>=this.MINN).slice(0,K).map(r=>r.s);

@@ -55,9 +55,11 @@ const Calib={
       if(best.r.avg>bTr.avg&&te.n>=4&&te.avg>=bTe.avg)out={...out,use:true,m:best.m,t1:best.t1,t2:best.t2,after:this.sim(D,list,impl,P,best.m,best.t1,best.t2,0,1e9),test:te,testBase:bTe}}
     return this.res[k]=out},
   // Hiệu chỉnh các coin đang theo dõi (chạy nền, từng coin một)
+  gen:0,
   async run(coins){
-    if(this.busy)return;this.busy=true;
-    try{for(const s of coins){const v=Strat.forCoin(s),tf=Strat.tfOf(v);if(!Strat.fits(v,s,tf)||Strat.impl[v.base].noCalib)continue;try{await this.fit(s,v,tf)}catch(e){}}}
+    const gen=++this.gen;if(this.busy){while(this.busy)await sleep(40);if(gen!==this.gen)return} // lượt mới thay lượt cũ
+    this.busy=true;
+    try{for(const s of coins){if(gen!==this.gen)break;const v=Strat.forCoin(s),tf=Strat.tfOf(v);if(!Strat.fits(v,s,tf)||Strat.impl[v.base].noCalib)continue;try{await this.fit(s,v,tf)}catch(e){}}}
     finally{this.busy=false}},
   // Mô tả ngắn cho thẻ tín hiệu
   note(c){

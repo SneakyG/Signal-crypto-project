@@ -77,5 +77,28 @@ const Draw={
     if(b.m>0)out.items.push({type:'mk',n:'MSS',c:C.mss,j:b.m,up:lg,shape:lg?'arrowUp':'arrowDown',ck:3});
     if(b.z){out.items.push({type:'box',n:'FVG chưa lấp',c:C.zone,a:b.z.born,b:last,lo:b.z.lo,hi:b.z.hi,op:.22,ck:4},{type:'hl',n:'Giá vào (mép FVG)',c:'#e5e7eb',a:b.z.born,b:last,p:b.z.prox,ck:4})}
     if(isFinite(b.leg)&&isFinite(b.ext))out.items.push({type:'hl',n:'50% nhịp',c:C.eq,a:k,b:last,p:(b.ext+b.leg)/2,dash:2,ck:5})},
+  conf(D,i,P,a,out,impl){
+    const M=Strat.impl.smc,X=M.ctx(D,{poiAge:120}),S=M.prep(D,P),Q=impl.pools(D,P),I=Ind.prep(D),C=this.C,last=D.c.length-1,from=Math.max(0,i-150);
+    const b=impl.side(D,i,P,X,S,Q,I,a.dirN),lg=a.dirN>0;
+    out.notes[0]=`Dải màu dưới đáy: xu hướng 4h/1D. LONG cần xanh, SHORT cần đỏ.`;
+    out.notes[1]='Biến động: ATR hiện tại phải nằm trong 0,6–2,5 lần ATR trung bình 100 nến (tránh thị trường chết hoặc tin tức giật mạnh).';
+    out.notes[2]='Đường nét chấm là các bể thanh khoản (đỉnh/đáy chưa bị lấy). Mốc hồng: nến quét qua đỉnh/đáy bằng nhau, swing cũ hoặc PDH/PDL rồi đóng cửa quay lại.';
+    out.notes[3]='Đường vàng: swing đối ứng; mũi tên MSB là nến đóng cửa phá qua trong vòng 15 nến sau cú quét; nhịp phá phải có ít nhất một nến thân ≥ 1 ATR.';
+    out.notes[4]='Khối lượng nến quét hoặc nến phá phải ≥ 1,3 lần trung bình 20 nến.';
+    out.notes[5]='Hộp tím: FVG hoặc Order Block do nhịp phá để lại, giá chưa quay lại chạm.';
+    out.notes[6]='Dải xanh lơ: vùng OTE 62–79% của nhịp từ cú quét tới đỉnh/đáy nhịp phá. Đường trắng (giá vào) là mép gần của phần chồng nhau giữa POI và OTE.';
+    out.notes[7]='Đường xanh lá nét đứt: thanh khoản đối ứng (mục tiêu). Phải còn ít nhất 2R từ giá vào.';
+    const kd=X.Dd.map[i];if(kd>=0)out.items.push({type:'hl',n:'PDH',c:C.prem,a:from,b:last,p:X.Dd.A.h[kd],dash:1,ck:2},{type:'hl',n:'PDL',c:C.disc,a:from,b:last,p:X.Dd.A.l[kd],dash:1,ck:2});
+    for(const v of Q.PH)if(v.conf<=i&&v.idx>=from&&v.take>i)out.items.push({type:'hl',n:'Đỉnh chưa bị lấy',c:C.prem,a:v.idx,b:last,p:v.p,dash:1});
+    for(const v of Q.PL)if(v.conf<=i&&v.idx>=from&&v.take>i)out.items.push({type:'hl',n:'Đáy chưa bị lấy',c:C.disc,a:v.idx,b:last,p:v.p,dash:1});
+    if(!b.sw)return;
+    const k=b.k;
+    out.items.push({type:'mk',n:'Quét · '+b.sw.src,c:C.sweep,j:k,up:!lg,shape:'square',ck:2},{type:'hl',n:'Mức bị quét',c:C.sweep,a:Math.max(0,k-20),b:Math.min(last,k+6),p:b.sw.L,dash:2,ck:2});
+    const SI=M.prep(D,{k:P.kInt||P.k,fvgMin:P.fvgMin}),opp=lg?SI.hiAt[k]:SI.loAt[k];if(isFinite(opp))out.items.push({type:'hl',n:'Swing đối ứng',c:C.mss,a:Math.max(0,k-10),b:b.m>0?b.m:last,p:opp,dash:2,ck:3});
+    if(b.m>0)out.items.push({type:'mk',n:'MSB',c:C.mss,j:b.m,up:lg,shape:lg?'arrowUp':'arrowDown',ck:3});
+    if(b.m>0&&isFinite(b.oA))out.items.push({type:'box',n:'OTE 62–79%',c:'#22d3ee',a:b.li,b:last,lo:Math.min(b.oA,b.oB),hi:Math.max(b.oA,b.oB),op:.10,ck:6});
+    if(b.z)out.items.push({type:'box',n:b.z.type+' chưa chạm',c:C.zone,a:b.z.born,b:last,lo:b.z.lo,hi:b.z.hi,op:.22,ck:5});
+    if(isFinite(b.entry))out.items.push({type:'hl',n:'Giá vào (POI ∩ OTE)',c:'#e5e7eb',a:b.z?b.z.born:k,b:last,p:b.entry,ck:6});
+    if(b.tgt!=null)out.items.push({type:'hl',n:'Thanh khoản đối ứng',c:'#22c55e',a:k,b:last,p:b.tgt,dash:2,ck:7})},
   ema(D,i,P,a,out){const I=Ind.prep(D),C=this.C;out.items.push({type:'line',n:'EMA20',c:C.ma2,v:I.e20,w:1},{type:'line',n:'EMA50',c:C.ma,v:I.e50,w:1},{type:'line',n:'EMA200',c:C.prem,v:I.e200,w:2})}
 };

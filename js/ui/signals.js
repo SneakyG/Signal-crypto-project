@@ -1,14 +1,18 @@
 /* Trang Bảng tín hiệu: thiết lập, thẻ tín hiệu, đặt lệnh (ký quỹ + đòn bẩy tự tính), KPI, giải thích "vì sao chưa có lệnh" */
 const UI={
   tf:()=>$('tf').value,bal:()=>+$('bal').value||0,risk:()=>+$('risk').value||5,slots:()=>+$('slots').value||20,topk:()=>+$('topk').value||10,
-  save(){Store.set('ui',{tf:$('tf').value,bal:$('bal').value,risk:$('risk').value,slots:$('slots').value,topk:$('topk').value,v:6})},
+  // ô Khung bị khóa (chiến lược cố định khung) thì vẫn lưu khung bạn tự chọn, để chuyển lại SMC / ICT không bị đổi khung
+  save(){Store.set('ui',{tf:$('tf').disabled?Store.get('tfOwn',$('tf').value):$('tf').value,bal:$('bal').value,risk:$('risk').value,slots:$('slots').value,topk:$('topk').value,v:6})},
   load(){const u=Store.get('ui',null);if(u)for(const k of['tf','bal','risk','slots','topk'])if(u[k]!=null&&$(k)&&(u.v>=6||k!=='risk')&&(u.v>=3||k!=='topk')&&(u.v>=4||k!=='tf'))$(k).value=u[k];if(u&&u.v<6){$('risk').value=5;this.save()}}, // rủi ro mặc định 5% cho mọi chiến lược
   fillStrat(){
     $('strat').innerHTML=`<option value="auto"${Strat.isAuto()?' selected':''}>⚡ Tự động: chiến lược thắng cao nhất cho từng coin</option>`
       +Strat.usable().map(v=>`<option value="${v.id}"${v.id===Strat.active?' selected':''}>${Strat.label(v)}</option>`).join('');
     this.lockTf()},
   // Chiến lược gắn với một khung (BTC x100 → 15m) thì khóa ô khung nến
-  lockTf(){const f=Strat.isAuto()?null:Strat.I().tf;if(f)$('tf').value=f;$('tf').disabled=!!f;$('tf').title=f?'Chiến lược này chỉ dùng khung '+f:''}
+  lockTf(){const f=Strat.isAuto()?null:Strat.I().tf,e=$('tf');
+    if(f){if(!e.disabled)Store.set('tfOwn',e.value);e.value=f}       // nhớ khung bạn đang chọn trước khi khóa
+    else if(e.disabled)e.value=Store.get('tfOwn',e.value);           // mở khóa: trả lại khung bạn đã chọn
+    e.disabled=!!f;e.title=f?'Chiến lược này chỉ dùng khung '+f+'. Chuyển sang chiến lược khác sẽ trả lại khung bạn đã chọn.':''}
 };
 
 // Chỉ vẽ lại khối thẻ khi nội dung (không tính giá) thay đổi; giá được cập nhật riêng mỗi 3 giây bởi Tick nên hiệu ứng không bị giật.
@@ -47,7 +51,8 @@ const Sig={
       fix=Strat.isAuto()?undefined:Strat.P().fixLev,used=Book.marginUsed(),p=Sizing.plan(UI.bal(),UI.risk(),UI.slots(),sl,fix,UI.bal()-used),open=Book.data.orders.filter(Book.isOpen);
     p.used=open.length;p.mUsed=used;p.openRisk=open.reduce((a,o)=>a+Book.riskNow(o),0);return p},
   async refresh(){
-    if(this.busy)return;this.busy=true;
+    if(this.busy){this.again=true;while(this.busy)await sleep(40);if(!this.again)return;} // đang làm mới thì chờ xong rồi làm thêm một lượt (không bỏ qua yêu cầu)
+    this.again=false;this.busy=true;
     try{
       const cur={};
       await Promise.all(this.watch().map(async s=>{
@@ -238,7 +243,7 @@ const Sig={
       const w=e.target.closest&&e.target.closest('[data-why]');if(w)this.explain(w.dataset.why)});
     for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();this.amts={};this.render()});
     $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});
-    $('tf').addEventListener('input',()=>this.reload());
+    $('tf').addEventListener('input',()=>{Store.set('tfOwn',$('tf').value);this.reload()});
     $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()}); // đổi chiến lược giữ nguyên ô Rủi ro (mặc định 5% cho mọi chiến lược)
     $('autoon').checked=Store.get('auto',false);
     $('autoon').addEventListener('change',()=>{const on=$('autoon').checked;Store.set('auto',on);toast(on?'Đã bật <b>tự động đặt lệnh</b>: coin nào hiện nút Đặt lệnh sẽ được ghi nhận ngay với số tiền gợi ý (chỉ trên thiết bị này).':'Đã tắt tự động đặt lệnh.',on?'up':'');if(on){this.autoPlace();this.render()}});
