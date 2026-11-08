@@ -109,7 +109,7 @@ const BookPage={
       {k:'side',h:'Hướng',v:z=>z.side,f:B.side},
       {k:'entry',h:'Giá vào',v:z=>z.entry,f:z=>Fmt.px(z.entry)},
       {k:'now',h:'Giá hiện tại',v:z=>px(z)||0,f:z=>`<span data-live="p:${z.s}"></span>`},
-      {k:'rnow',h:'Lãi hiện tại (R)',v:z=>lv(z)?lv(z).rr:0,f:z=>`<span class="rtag" data-live="rr:${z.id}">…</span>`},
+      {k:'rnow',h:'Lãi hiện tại (R)',v:z=>lv(z)?lv(z).rr:0,f:z=>`<span class="rtag" data-live="rr:${z.id}">…</span>${z.st==='F'&&z.R?`<span class="sub" title="Phí sàn 2 chiều ≈ ${(2*FEE).toFixed(2)}% giá trị vị thế. Cắt lỗ càng hẹp thì phí chiếm càng nhiều R.">hòa vốn sau phí ≥ +${(2*FEE/100*z.entry/z.R).toFixed(2)}R</span>`:''}`},
       {k:'sl',h:'Cắt lỗ',v:z=>z.st==='H'?z.entry:z.sl,f:z=>z.st==='H'?`<b class="be">${Fmt.px(z.entry)}</b><span class="sub up">đã dời về entry · 0R</span>`:`${Fmt.px(z.sl)}${B.rl(-1,(z.sl/z.entry-1)*100)}`},
       {k:'tp1',h:'TP1',v:z=>z.tp1,f:z=>`${z.st==='H'?`<span class="chip up">✓ ${Fmt.px(z.tp1)}</span>`:Fmt.px(z.tp1)}${B.rl(z.tp1R||1.5,(z.tp1/z.entry-1)*100)}`},
       {k:'tp2',h:'TP2',v:z=>z.tp2,f:z=>`${Fmt.px(z.tp2)}${B.rl(z.tp2R||3,(z.tp2/z.entry-1)*100)}`},

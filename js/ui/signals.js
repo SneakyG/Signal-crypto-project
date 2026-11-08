@@ -111,7 +111,7 @@ const Sig={
       :z.capped?`<p class="wn">Ký quỹ đã giới hạn bằng toàn bộ vốn, nên thua chỉ mất ${z.lossPct.toFixed(1)}% vốn thay vì ${UI.risk()}%.</p>`
       :z.levCut?`<p class="wn">Đòn bẩy dừng ở ${z.lev}× để thanh lý cách giá vào ≥ 2 lần cắt lỗ, nên ký quỹ cao hơn ngân sách $${z.budget.toFixed(2)}.</p>`
       :`<p class="wn ok">Đòn bẩy ${z.lev}× = mức thấp nhất để ký quỹ vừa ngân sách $${z.budget.toFixed(2)}; thanh lý cách ${(z.liqDist*100).toFixed(2)}%, xa hơn ${(z.liqDist/z.sl).toFixed(1)} lần khoảng cắt lỗ ${(z.sl*100).toFixed(2)}%.</p>`;
-    return`<div class="szg"><div><i>Đòn bẩy</i><b>${z.lev}×</b></div><div><i>Giá trị vị thế</i><b>$${z.notional.toFixed(0)}</b></div><div><i>Thua nếu cắt lỗ</i><b class="dn">−$${z.loss.toFixed(2)}</b><span class="sub">${z.lossPct.toFixed(1)}% vốn · phí ≈ $${(z.fee||0).toFixed(2)}</span></div><div><i>Giá thanh lý ≈</i><b>${Fmt.px(z.liq)}</b><span class="sub">cách ${(z.liqDist*100).toFixed(2)}%</span></div></div>${warn}`},
+    return`<div class="szg"><div><i>Đòn bẩy</i><b>${z.lev}×</b></div><div><i>Giá trị vị thế</i><b>$${z.notional.toFixed(0)}</b></div><div><i>Thua nếu cắt lỗ</i><b class="dn">−$${z.loss.toFixed(2)}</b><span class="sub">${z.lossPct.toFixed(1)}% vốn · đã gồm phí ≈ $${(z.fee||0).toFixed(2)}</span></div><div><i>Giá thanh lý ≈</i><b>${Fmt.px(z.liq)}</b><span class="sub">cách ${(z.liqDist*100).toFixed(2)}%</span></div></div>${warn}`},
   cardItem(s,p){
     const x=this.state[s],{sig,L}=x.tr,coin=Fmt.coin(s),pill=(t,c)=>`<span class="badge ${c}">${t}</span>`,
       mine=Book.openFor(s),z=this.size(s,+this.amts[s]||0),up=x.spark[x.spark.length-1]>=x.spark[0],W=x.v.params.W||3,cls=L.st==='H'?'F':L.st;
