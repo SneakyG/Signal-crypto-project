@@ -53,4 +53,30 @@ let pass=0,fail=0;const ok=(n,c,d)=>{if(c){pass++;console.log('PASS',n)}else{fai
   // Web đọc nhịp của máy chủ → web không gửi Telegram nữa (tránh trùng)
   ok('máy chủ ghi nhịp "đang chạy" để web tự ngừng gửi',Date.now()-JSON.parse(files['tin-hieu-bot.json']).at<6e4);
   ok('thiếu GIST_TOKEN báo lỗi rõ ràng',await main({env:{},fetch}).then(()=>false,e=>/GIST_TOKEN/.test(e.message)));
+  ok('máy chủ ghi nguồn giá đang dùng (Spot vì Futures bị chặn) để web khớp theo',JSON.parse(files['tin-hieu-bot.json']).src==='spot',JSON.parse(files['tin-hieu-bot.json']).src);
+  // ---- Độc lập với web: chưa từng bật Đồng bộ trên web → máy chủ tự tạo Gist; secret mang tên TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID ----
+  {const G={},chats=[];let created=0;
+   const f2=async(u,o={})=>{const url=new URL(u);
+     if(url.host==='api.github.com'){if(o.headers.Authorization!=='Bearer TOK2')return J({},401);
+       if(url.pathname==='/gists'&&(o.method||'GET')==='GET')return J(Object.entries(G).map(([id,fl])=>({id,files:Object.fromEntries(Object.keys(fl).map(k=>[k,{}]))})));
+       if(url.pathname==='/gists'&&o.method==='POST'){created++;const id='new'+created;G[id]={};for(const[k,v]of Object.entries(JSON.parse(o.body).files))G[id][k]=v.content;return J({id})}
+       const m=url.pathname.match(/^\/gists\/(\w+)$/);if(m&&G[m[1]]){if((o.method||'GET')==='GET')return J({files:Object.fromEntries(Object.entries(G[m[1]]).map(([k,v])=>[k,{content:v,truncated:false}]))});
+         if(o.method==='PATCH'){for(const[k,v]of Object.entries(JSON.parse(o.body).files))G[m[1]][k]=v.content;return J({})}}
+       return J({},404)}
+     if(url.host==='api.telegram.org'){chats.push(url.searchParams.get('chat_id')||(o.body&&String(o.body).match(/chat_id[^0-9-]*(-?\d+)/)||[])[1]);TGM.push(url.searchParams.get('text')||'');return J({ok:true,result:{}})}
+     return fetch(u,o)};
+   const env2={GIST_TOKEN:'TOK2',TELEGRAM_BOT_TOKEN:'BOTX',TELEGRAM_CHAT_ID:'777',BOT_MINUTES:'0',BOT_EVERY:'1'};
+   const r=await main({env:env2,fetch:f2});const id=Object.keys(G)[0];
+   ok('chưa có Gist (chưa bật gì trên web) → máy chủ tự tạo Gist đồng bộ và chạy bình thường',created===1&&id&&G[id]['tin-hieu-sync.json']&&G[id]['tin-hieu-bot.json'],{created,files:id&&Object.keys(G[id])});
+   ok('dùng secret TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID',chats.length>0&&chats.every(c=>c==='777'),chats.slice(0,3));
+   await main({env:env2,fetch:f2});ok('lượt sau dùng lại Gist đã tạo, không tạo thêm',created===1&&JSON.parse(G[id]['tin-hieu-bot.json']).runs===2,{created,runs:JSON.parse(G[id]['tin-hieu-bot.json']).runs})}
+  // ---- Chế độ tệp: không có GIST_TOKEN, chỉ có Telegram → trạng thái lưu tệp (workflow giữ lại bằng actions/cache) ----
+  {const os=require('os'),fsx=require('fs'),pth=require('path'),dir=fsx.mkdtempSync(pth.join(os.tmpdir(),'thbot-')),file=pth.join(dir,'state.json');let ghc=0;
+   const f3=async(u,o={})=>{const url=new URL(u);if(url.host==='api.github.com'){ghc++;return J({},401)}if(url.host==='api.telegram.org'){TGM.push(url.searchParams.get('text')||'');return J({ok:true,result:{}})}return fetch(u,o)};
+   const env3={TELEGRAM_BOT_TOKEN:'BOTY',TELEGRAM_CHAT_ID:'888',BOT_STATE:file,BOT_MINUTES:'0',BOT_EVERY:'1'};
+   const n0=TGM.length;await main({env:env3,fetch:f3});const st1=JSON.parse(fsx.readFileSync(file,'utf8'));
+   ok('không có GIST_TOKEN: vẫn chạy, gửi Telegram, lưu trạng thái ra tệp, không gọi GitHub',ghc===0&&TGM.slice(n0).some(t=>t.startsWith('🤖 Máy chủ'))&&st1.bot&&st1.bot.runs===1&&st1.store,{ghc,runs:st1.bot&&st1.bot.runs});
+   const n1=TGM.length;await main({env:env3,fetch:f3});const st2=JSON.parse(fsx.readFileSync(file,'utf8'));
+   ok('chế độ tệp, lượt 2: nhớ lần trước (không chào lại, không báo lại tín hiệu cũ)',st2.bot.runs===2&&!TGM.slice(n1).some(t=>t.startsWith('🤖 Máy chủ')||t.startsWith('📌')),{runs:st2.bot.runs,msg:TGM.slice(n1).map(t=>t.split('\n')[0])})}
+  ok('thiếu cả GIST_TOKEN lẫn Telegram: báo lỗi rõ ràng',await main({env:{TELEGRAM_BOT_TOKEN:'x'},fetch}).then(()=>false,e=>/TELEGRAM_BOT_TOKEN/.test(e.message)&&/GIST_TOKEN/.test(e.message)));
   console.log(`\nTỔNG: ${pass} đạt, ${fail} lỗi`);process.exit(fail?1:0)})().catch(e=>{console.log('LỖI TEST',e.stack);process.exit(1)});

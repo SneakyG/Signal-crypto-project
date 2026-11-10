@@ -16,7 +16,97 @@ const Draw={
     const out={checks:a.checks,req:a.req||[],dir:a.dirN,items:[],notes:{},side:a.side,gate:a.gate||''};
     out.notes[0]='Dải màu dưới đáy biểu đồ: xanh = 4h/1D cho phép LONG, đỏ = cho phép SHORT, xám = chưa rõ hướng.';
     const f=this[base];if(f)try{f.call(this,D,i,P,a,out,impl)}catch(e){console.warn('Draw',e)}
+    // Lớp "điều kiện còn thiếu": giá cần chạy thế nào thì điều kiện ✗ mới thành ✓
+    out.miss=[];out.need=[];const g=this.need[base];
+    if(g&&a.checks.some(c=>!c[1]))try{g.call(this,D,i,P,a,out,impl,a.checks.map(c=>!c[1]))}catch(e){console.warn('Need',e)}
+    // điều kiện ✗ phụ thuộc bước trước (VD FVG chỉ có sau MSS): vẫn liệt kê để biết còn phải chờ gì
+    a.checks.forEach((c,q)=>{if(!c[1]&&!out.need.some(n=>n.ck===q))out.need.push({ck:q,t:`⏳ ${c[0].split(' (')[0]} · chờ các bước trước`})});
+    out.need.sort((x,y)=>x.ck-y.ck);
     return out},
+  // ---- Dựng phần tử cho lớp điều kiện còn thiếu ----
+  //   lv  : mức giá giá phải chạm/đóng cửa qua {k:'lv', ck, p, n (nhãn trục giá), a (nến bắt đầu vẽ)}
+  //   box : vùng giá cần chạm {k:'box', ck, lo, hi, a, n}
+  //   kz  : khung giờ killzone sắp tới {k:'kz', ck, ta, tb (ms), n}
+  //   need: dòng tóm tắt ở góc biểu đồ {ck, t}
+  tw(d){return d>0?'tăng':d<0?'giảm':'chưa rõ'},
+  // Killzone tiếp theo kể từ thời điểm t (dò từng 5 phút trong 24 giờ)
+  kzNext(impl,t){const st=3e5;let a=Math.ceil(t/st)*st;
+    if(impl.inKZ(a))return null;
+    for(let q=0;q<288&&!impl.inKZ(a);q++)a+=st;if(!impl.inKZ(a))return null;let b=a;while(impl.inKZ(b)&&b-a<864e5)b+=st;return{ta:a,tb:b,name:impl.kzName(a)}},
+  mKz(impl,D,i,out,ck){const step=D.t[1]-D.t[0],nx=this.kzNext(impl,D.t[i]+step);if(!nx)return;
+    const w=Math.max(0,nx.ta-(D.t[i]+step)),h=Math.floor(w/36e5),m=Math.round(w%36e5/6e4);
+    out.miss.push({k:'kz',ck,ta:nx.ta,tb:nx.tb,n:`Chờ phiên ${nx.name} tiếp theo`});
+    out.need.push({ck,t:`⏰ Ngoài killzone: chờ ${nx.name} (còn ${h}h${String(m).padStart(2,'0')})`})},
+  // Mức thanh khoản cần bị quét: chỉ lấy mức nằm phía giá phải chạy tới (LONG: dưới giá, SHORT: trên giá), gần nhất trước
+  mSweep(D,i,lg,lv,out,ck,P,A){const c=D.c[i],L=lv.filter(([p])=>isFinite(p)&&(lg?p<c:p>c)).sort((x,y)=>lg?y[0]-x[0]:x[0]-y[0]).slice(0,3);
+    for(const[p,src]of L)out.miss.push({k:'lv',ck,p,a:i-40,n:`Cần quét ${src}`});
+    out.need.push({ck,t:L.length?`💧 Cần râu nến ${lg?'xuống dưới':'vượt lên trên'} ${src0(L)} ${Fmt.px(L[0][0])}${P&&A?` (≥ ${Fmt.px(P.sweepAtr*A)})`:''} rồi đóng cửa quay lại`:`💧 Chưa có mức thanh khoản ${lg?'bên dưới':'bên trên'} để quét`});
+    function src0(L){return L[0][1]}},
+  mMss(D,i,lg,opp,body,dispBody,left,out,ck,lbl='MSS'){
+    if(!isFinite(opp))return;out.miss.push({k:'lv',ck,p:opp,a:i-30,n:`Đóng nến ${lg?'trên':'dưới'} để xác nhận ${lbl}`});
+    out.need.push({ck,t:`📐 Cần đóng nến ${lg?'trên':'dưới'} ${Fmt.px(opp)}${dispBody?`, thân ≥ ${dispBody} ATR`:''} để xác nhận ${lbl}${body!=null&&body<dispBody?` (nến phá vừa rồi thân chỉ ${body.toFixed(1)} ATR)`:''}${left!=null?` · còn ${Math.max(0,left)} nến`:''}`})},
+  mZones(D,i,lg,zs,out,ck){const c=D.c[i];
+    const L=zs.filter(z=>lg?z.lo<c:z.hi>c).map(z=>({...z,d:lg?Math.max(0,c-z.hi):Math.max(0,z.lo-c)})).sort((x,y)=>x.d-y.d).slice(0,2);
+    for(const z of L)out.miss.push({k:'box',ck,lo:z.lo,hi:z.hi,a:i-40,n:`Cần chạm vùng này · ${z.type} ${z.tf}`});
+    return L.length},
+  need:{
+    smc(D,i,P,a,out,impl,no){
+      const X=impl.ctx(D,P),S=impl.prep(D,P),I=Ind.prep(D),dir=a.dirN,lg=dir>0,b=impl.side(D,i,P,X,S,I,dir),A=I.atr[i];
+      if(no[0])out.need.push({ck:0,t:`⚠️ Cần 1H và 4H đồng thuận xu hướng ${lg?'TĂNG':'GIẢM'} (hiện 1H ${this.tw(b.d1)}, 4H ${this.tw(b.d4)})`});
+      if(no[2])this.mKz(impl,D,i,out,2);
+      const lv=[],as=X.asia[i],ph=X.H.own[i]-1,kd=X.Dd.map[i];
+      if(as)lv.push([lg?as.lo:as.hi,lg?'đáy phiên Á':'đỉnh phiên Á']);
+      if(ph>=0)lv.push([lg?X.H.A.l[ph]:X.H.A.h[ph],lg?'đáy giờ trước':'đỉnh giờ trước']);
+      if(kd>=0)lv.push([lg?X.Dd.A.l[kd]:X.Dd.A.h[kd],lg?'PDL':'PDH']);
+      if(no[3])this.mSweep(D,i,lg,lv,out,3,P,A);
+      if(no[1]){const k1=X.H.map[i],k4=D.i4?D.i4[i]:-1,zs=[];
+        if(k1>=0)for(const z of X.h1.act[k1]||[])if(z.side===dir)zs.push({...z,tf:'1H'});
+        if(X.h4&&k4>=0)for(const z of X.h4.act[k4]||[])if(z.side===dir)zs.push({...z,tf:'4H'});
+        const n=this.mZones(D,i,lg,zs,out,1),pd=kd>=0?(lg?X.Dd.A.l[kd]:X.Dd.A.h[kd]):NaN;
+        if(isFinite(pd)&&(lg?pd<D.c[i]:pd>D.c[i]))out.miss.push({k:'lv',ck:1,p:pd,a:i-40,n:`Hoặc quét ${lg?'PDL':'PDH'}`});
+        out.need.push({ck:1,t:`🎯 Cú quét phải chạm ${n?`vùng OB/FVG 1H/4H (hộp cam nét đứt)`:'vùng OB/FVG 1H/4H (hiện chưa có vùng phù hợp)'}${isFinite(pd)?` hoặc quét ${lg?'PDL':'PDH'} ${Fmt.px(pd)}`:''}`})}
+      if(b.sw){const left=b.sw.k+P.mssBars-i;
+        if(no[4])this.mMss(D,i,lg,b.opp,b.m>0?Math.abs(D.c[b.m]-D.o[b.m])/I.atr[b.m]:null,P.dispBody,left,out,4);
+        if(no[5]&&!no[4])out.need.push({ck:5,t:`🟪 Nhịp phá cần để lại FVG ≥ ${P.fvgMin} ATR chưa bị lấp`});
+        if(no[6]&&b.z&&isFinite(b.leg)){const eq=(b.ext+b.leg)/2;out.miss.push({k:'lv',ck:6,p:eq,a:b.sw.k,n:`Giá vào phải ${lg?'dưới':'trên'} 50%`});
+          out.need.push({ck:6,t:`🦄 Mép FVG (${Fmt.px(b.z.prox)}) cần trùng Breaker Block hoặc nằm ${lg?'dưới':'trên'} 50% nhịp ${Fmt.px(eq)}`})}}
+      else if(no[4])out.need.push({ck:4,t:'📐 MSS chỉ tính sau khi có cú quét thanh khoản'})},
+    conf(D,i,P,a,out,impl,no){
+      const M=Strat.impl.smc,X=M.ctx(D,{poiAge:120}),S=M.prep(D,P),Q=impl.pools(D,P),I=Ind.prep(D),dir=a.dirN,lg=dir>0,b=impl.side(D,i,P,X,S,Q,I,dir),A=I.atr[i];
+      if(no[0])out.need.push({ck:0,t:`⚠️ Cần xu hướng 4h ${lg?'TĂNG':'GIẢM'} và 1D không ngược chiều (hiện 4h ${this.tw(D.b4[i])}, 1D ${this.tw(D.b1[i])})`});
+      if(no[1])out.need.push({ck:1,t:`🌡️ Biến động ${b.vr.toFixed(2)}× trung vị: cần trong ${P.volLo}–${P.volHi}×, chờ thị trường ${b.vr<P.volLo?'sôi động hơn':'dịu lại'}`});
+      if(no[2]){const L=(lg?Q.PL:Q.PH).filter(v=>v.conf<=i&&v.take>i&&i-v.idx<=P.poolLook).map(v=>[v.p,i-v.conf>=P.poolAge?(lg?'đáy swing cũ':'đỉnh swing cũ'):(lg?'đáy gần':'đỉnh gần')]);
+        const kd=X.Dd.map[i];if(kd>=0)L.push([lg?X.Dd.A.l[kd]:X.Dd.A.h[kd],lg?'PDL':'PDH']);this.mSweep(D,i,lg,L,out,2,P,A)}
+      if(b.sw){const SI=M.prep(D,{k:P.kInt||P.k,fvgMin:P.fvgMin}),opp=lg?SI.hiAt[b.k]:SI.loAt[b.k];
+        if(no[3])this.mMss(D,i,lg,opp,b.m>0?b.body:null,P.dispBody,b.k+P.mssBars-i,out,3,'MSB');
+        if(no[4])out.need.push({ck:4,t:`📊 Khối lượng nến quét/nến phá mới ${b.vx?b.vx.toFixed(1):'0'}× TB 20 nến, cần ≥ ${P.volMult}×`});
+        if(no[5]&&!no[3])out.need.push({ck:5,t:'🟪 Nhịp phá cần để lại FVG hoặc Order Block chưa bị chạm'});
+        if(no[6]&&isFinite(b.oA)){out.miss.push({k:'box',ck:6,lo:Math.min(b.oA,b.oB),hi:Math.max(b.oA,b.oB),a:b.li,n:'Vùng POI cần nằm trong OTE 62–79%'});
+          out.need.push({ck:6,t:`🎯 FVG/OB cần chồng lên OTE ${Fmt.px(Math.min(b.oA,b.oB))}–${Fmt.px(Math.max(b.oA,b.oB))}`})}
+        if(no[7]&&!no[6]){if(b.tgt!=null)out.miss.push({k:'lv',ck:7,p:b.tgt,a:b.k,n:'Thanh khoản đối ứng (quá gần)'});
+          out.need.push({ck:7,t:`📏 Chỉ còn ${isFinite(b.room)?b.room.toFixed(1):'?'}R tới thanh khoản đối ứng, cần ≥ ${P.roomR}R`})}}
+      else if(no[3])out.need.push({ck:3,t:'📐 MSB chỉ tính sau khi có cú quét thanh khoản'})},
+    ict2(D,i,P,a,out,impl,no){
+      const X=impl.prep(D),S=Strat.impl.smc.prep(D,{k:P.k,fvgMin:P.fvgAtr}),I=Ind.prep(D),dir=a.dirN,lg=dir>0,b=impl.side(D,i,P,X,S,I,dir),A=I.atr[i];
+      if(no[0])this.mKz(impl,D,i,out,0);
+      const lv=[],as=X.asia[i],kd=X.Dd.map[i];if(as)lv.push([lg?as.lo:as.hi,lg?'đáy phiên Á':'đỉnh phiên Á']);
+      lv.push([lg?S.loAt[i]:S.hiAt[i],lg?'đáy swing gần nhất':'đỉnh swing gần nhất']);if(kd>=0)lv.push([lg?X.Dd.A.l[kd]:X.Dd.A.h[kd],lg?'PDL':'PDH']);
+      if(no[2])this.mSweep(D,i,lg,lv,out,2,P,A);
+      if(no[1]){const kH=X.H.map[i],zs=kH>=0?(X.act[kH]||[]).filter(z=>z.side===dir).map(z=>({...z,tf:'1h'})):[],n=this.mZones(D,i,lg,zs,out,1);
+        out.need.push({ck:1,t:`🎯 Cú quét phải chạm ${n?'vùng OB/FVG 1h (hộp cam nét đứt)':'vùng OB/FVG 1h (hiện chưa có vùng phù hợp)'} hoặc quét ${lg?'PDL':'PDH'}`})}
+      if(b.sw){const opp=lg?S.hiAt[b.sw.k]:S.loAt[b.sw.k];
+        if(no[3])this.mMss(D,i,lg,opp,null,P.dispBody,b.sw.k+P.mssBars-i,out,3);
+        if(no[4]&&!no[3])out.need.push({ck:4,t:`🟪 Nhịp phá cần để lại FVG ≥ ${P.fvgAtr} ATR chưa lấp`});
+        if(no[5]&&isFinite(b.leg)&&isFinite(b.ext)){const eq=(b.ext+b.leg)/2;out.miss.push({k:'lv',ck:5,p:eq,a:b.sw.k,n:`Giá vào phải ${lg?'dưới':'trên'} 50%`});
+          out.need.push({ck:5,t:`⚖️ Giá vào cần ở ${lg?'Discount (dưới':'Premium (trên'} ${Fmt.px(eq)})`})}}
+      else if(no[3])out.need.push({ck:3,t:'📐 MSS chỉ tính sau khi có cú quét thanh khoản'})},
+    rsi2(D,i,P,a,out,impl,no){
+      const X=impl.ind(D),lg=a.dirN>0;
+      if(no[0])out.need.push({ck:0,t:`⚠️ Cần xu hướng 4h/1D ${lg?'TĂNG':'GIẢM'} (dải màu dưới đáy phải ${lg?'xanh':'đỏ'})`});
+      if(no[1]&&isFinite(X.s200[i])){out.miss.push({k:'lv',ck:1,p:X.s200[i],a:i-60,n:`Đóng nến ${lg?'trên':'dưới'} SMA200`});
+        out.need.push({ck:1,t:`📈 Cần đóng nến ${lg?'trên':'dưới'} SMA200 ${Fmt.px(X.s200[i])}`})}
+      if(no[2])out.need.push({ck:2,t:`🔁 RSI(2) hiện ${X.r2[i].toFixed(0)}, cần ${lg?'< '+P.rl:'> '+(100-P.rl)}: chờ một nhịp ${lg?'giảm':'tăng'} ngắn`})}
+  },
   rsi2(D,i,P,a,out,impl){
     const X=impl.ind(D),C=this.C,lg=a.dirN>0;
     out.items.push({type:'line',n:'SMA200',c:C.ma,v:X.s200,ck:1,w:2});

@@ -1,14 +1,17 @@
-# Máy chủ đám mây "Tín hiệu": gửi Telegram cả khi không mở web.
-# Cứ 10 phút GitHub bật máy chủ một lần, mỗi lần chạy liên tục ~9,5 phút và làm mới tín hiệu mỗi 60 giây
-# → gần như theo dõi liên tục. Hướng dẫn cài đặt: bot/HUONG-DAN.md
+# Máy chủ đám mây "Tín hiệu": quét tín hiệu + gửi Telegram 24/7 trên GitHub Actions, không cần mở web.
+# Chạy CHÍNH mã nguồn của trang (thư mục js/): cùng dữ liệu, cùng thuật toán → tín hiệu trên web và tin Telegram khớp nhau.
+# Lịch: GitHub cho phép tối thiểu 5 phút/lần. Mỗi lượt chạy liên tục ~9,5 phút, làm mới mỗi 60 giây; lượt sau xếp hàng chờ
+# lượt trước xong (không chạy chồng) → theo dõi gần như liên tục kể cả khi GitHub trễ lịch. Hướng dẫn: bot/HUONG-DAN.md
 name: Tín hiệu – máy chủ Telegram
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
 concurrency:
   group: tin-hieu-bot
   cancel-in-progress: false
+permissions:
+  contents: read
 jobs:
   bot:
     runs-on: ubuntu-latest
@@ -18,12 +21,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Chỉ cần khi KHÔNG dùng GIST_TOKEN: giữ trí nhớ tín hiệu + Sổ lệnh của máy chủ giữa các lượt chạy
+      - name: Khôi phục trạng thái máy chủ
+        uses: actions/cache/restore@v4
+        with:
+          path: .bot-state
+          key: bot-state-${{ github.run_id }}
+          restore-keys: bot-state-
       - name: Chạy máy chủ
         run: node bot/bot.js
         env:
           TZ: Asia/Ho_Chi_Minh
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TG_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || secrets.TG_CHAT }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT: ${{ secrets.TG_CHAT }}
           BOT_MINUTES: '9.5'
           BOT_EVERY: '60'
+      - name: Lưu trạng thái máy chủ
+        if: always() && hashFiles('.bot-state/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .bot-state
+          key: bot-state-${{ github.run_id }}-${{ github.run_attempt }}

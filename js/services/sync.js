@@ -7,7 +7,7 @@
    - Chiến lược: gộp từng phiên bản; kết quả thắng/thua của phiên bản gộp theo từng lệnh, không đếm trùng.
    - Chỉ MÁY CHÍNH được tự động đặt lệnh, tự học và gửi Telegram, để hai máy không làm trùng. Máy phụ xem, đặt tay, cắt, hủy lệnh. */
 const Sync={
-  FILE:'tin-hieu-sync.json',BOTFILE:'tin-hieu-bot.json',botAt:0,mainAt:0,
+  FILE:'tin-hieu-sync.json',BOTFILE:'tin-hieu-bot.json',botAt:0,botSrc:'',mainAt:0,
   botOn(){return Date.now()-this.botAt<20*6e4}, // máy chủ đám mây chạy trong 20 phút gần đây
   mainStale(){return Date.now()-this.mainAt>5*6e4}, // máy chính không đồng bộ hơn 5 phút = đã tắt trang
 DESC:'Tín hiệu – dữ liệu đồng bộ (tự tạo, đừng xóa)',API:'https://api.github.com',
@@ -32,7 +32,7 @@ DESC:'Tín hiệu – dữ liệu đồng bộ (tự tạo, đừng xóa)',API:'
     Store.set('syncGist',id);return id},
   async pull(id){
     const g=await this.gh('/gists/'+id),f=g.files&&g.files[this.FILE];if(!f)return null;
-    const b=g.files[this.BOTFILE];if(b)try{this.botAt=JSON.parse(b.content).at||0}catch(e){}
+    const b=g.files[this.BOTFILE];if(b)try{const B=JSON.parse(b.content);this.botAt=B.at||0;this.botSrc=B.src||''}catch(e){} // nhịp + nguồn giá của máy chủ đám mây
     const txt=f.truncated?await(await fetch(f.raw_url,{cache:'no-store'})).text():f.content;
     try{return JSON.parse(txt)}catch(e){return null}},
   cfg(){const u=Store.get('ui',{});return{ui:{tf:u.tf,bal:u.bal,risk:u.risk,slots:u.slots,topk:u.topk,v:u.v},active:Strat.active,tp1:Store.get('tp1',1.5),tp2:Store.get('tp2','auto'),auto:Store.get('auto',false),

@@ -14,7 +14,7 @@ const TG={
   send(text){const{t,c}=this.cfg();if(!t||!c||this.who()==='bot'||this.who()==='main')return; // tránh tin trùng
    this.q=this.q.then(()=>this.call('sendMessage',{chat_id:c,text})).catch(()=>{}).then(()=>sleep(1100))},
   // Dòng trạng thái: ai đang gửi Telegram lúc này
-  paint(){const el=$('tgwho');if(!el)return;const{t,c}=this.cfg(),w=this.who(),ago=x=>Math.max(0,Math.round((Date.now()-x)/6e4));
+  paint(){if(typeof Settings!=='undefined'&&Settings.srcPaint)try{Settings.srcPaint()}catch(e){}const el=$('tgwho');if(!el)return;const{t,c}=this.cfg(),w=this.who(),ago=x=>Math.max(0,Math.round((Date.now()-x)/6e4));
     el.className='note '+(t&&c?'up':'dn');
     el.innerHTML=!t||!c?'⚠ Chưa có bot token / Chat ID nên chưa gửi được tin nào.'
       :w==='bot'?`✅ <b>Máy chủ đám mây</b> đang gửi Telegram (chạy lần cuối ${ago(Sync.botAt)} phút trước), kể cả khi bạn tắt hết trình duyệt. Trang web này không gửi để tránh trùng tin.`

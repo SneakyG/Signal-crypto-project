@@ -1,6 +1,17 @@
 /* Tiện ích dùng chung: DOM, định dạng, lưu trữ, hiệu ứng, bảng có thể sắp xếp */
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// Nhường luồng chính để trình duyệt kịp vẽ và nhận thao tác (MessageChannel không bị kẹp tối thiểu 4ms như setTimeout)
+const Idle={q:[],ch:null,
+  y(){return new Promise(r=>{if(typeof MessageChannel==='undefined')return setTimeout(r,0);
+    if(!this.ch){this.ch=new MessageChannel();this.ch.port1.onmessage=()=>{const f=this.q.shift();if(f)f()}}this.q.push(r);this.ch.port2.postMessage(0)})},
+  // slice(): trả về hàm kiểm tra; sau mỗi ~ms mili giây làm việc liên tục thì nhường một lần
+  slice(ms=12){const now=()=>typeof performance!=='undefined'?performance.now():Date.now();let t=now();return async()=>{if(now()-t<ms)return false;await Idle.y();t=now();return true}}};
+// Lỗi "đã hủy" (đổi chiến lược / khung khi đang tải): bỏ qua, không báo lỗi
+const abortErr=()=>{const e=new Error('Đã hủy');e.name='AbortError';return e};
+const isAbort=e=>e&&e.name==='AbortError';
+// Gom các thao tác liên tiếp: chỉ chạy f sau khi ngừng gọi ms mili giây
+const debounce=(f,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
 const median=a=>{if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y);return s[s.length>>1]};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const FEE=0.05; // % phí mỗi chiều (Futures taker ~0,04-0,05%)

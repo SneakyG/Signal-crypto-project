@@ -34,19 +34,19 @@ const Calib={
       if(!L.win){lose++;if(L.bestR>=0.8*t1)near++}
       if(L.st==='S'){stops++;for(let j=L.end+1;j<=Math.min(D.c.length-1,L.end+24);j++)if(d>0?D.h[j]>=sig.tp1:D.l[j]<=sig.tp1){hunt++;break}}}
     const s=Backtest.stats(T);return{...s,hunt:stops?hunt/stops*100:0,near:lose?near/lose*100:0}},
-  async fit(s,v,tf){
+  async fit(s,v,tf,signal,live=()=>true){
     const k=this.key(s,v,tf),old=this.res[k];
     if(old&&old.pj===JSON.stringify(v.params)&&Date.now()-old.at<36e5)return old;
-    const impl=Strat.impl[v.base],P=v.params,D=await Sig.series(s,tf,5000),last=D.c.length-2,list=[],memo={};
+    const impl=Strat.impl[v.base],P=v.params,D=await Sig.series(s,tf,5000,signal),last=D.c.length-2,list=[],memo={},sl=Idle.slice();
     const an=i=>memo[i]!==undefined?memo[i]:(memo[i]=impl.analyze(D,i,P));
-    for(let i=210;i<last;i++){const a=an(i);if(!a||a.side==='CHỜ')continue;const p=an(i-1);if(p&&p.side===a.side)continue;list.push({i,a})}
+    for(let i=210;i<last;i++){if((i&31)===0&&await sl()&&!live())return null;const a=an(i);if(!a||a.side==='CHỜ')continue;const p=an(i-1);if(p&&p.side===a.side)continue;list.push({i,a})}
     const cut=Math.floor(D.c.length*0.7),base0={m:1,t1:P.tp1R,t2:P.tp2R};
     const G=this.GRID,cands=[],t2s=Strat.TP().t2==='auto'?G.t2.filter(x=>x>P.tp1R):[P.tp2R];
     for(const m of G.m)for(const t2 of t2s)cands.push({m,t1:P.tp1R,t2});
     if(!cands.some(c=>c.m===1&&c.t1===P.tp1R&&c.t2===P.tp2R))cands.push(base0);
     let best=null;const bTr=this.sim(D,list,impl,P,1,P.tp1R,P.tp2R,0,cut);
     for(const c of cands){const r=this.sim(D,list,impl,P,c.m,c.t1,c.t2,0,cut);
-      if(r.n>=12&&(!best||r.avg>best.r.avg+1e-9||(Math.abs(r.avg-best.r.avg)<1e-9&&r.win>best.r.win)))best={...c,r};await sleep(0)}
+      if(r.n>=12&&(!best||r.avg>best.r.avg+1e-9||(Math.abs(r.avg-best.r.avg)<1e-9&&r.win>best.r.win)))best={...c,r};await Idle.y();if(!live())return null}
     const bTe=this.sim(D,list,impl,P,1,P.tp1R,P.tp2R,cut,1e9),bAll=this.sim(D,list,impl,P,1,P.tp1R,P.tp2R,0,1e9);
     let out={at:Date.now(),pj:JSON.stringify(P),s,v:v.id,use:false,m:1,t1:P.tp1R,t2:P.tp2R,before:bAll,after:bAll,n:list.length};
     if(best&&(best.m!==1||best.t1!==P.tp1R||best.t2!==P.tp2R)){
@@ -55,12 +55,14 @@ const Calib={
       if(best.r.avg>bTr.avg&&te.n>=4&&te.avg>=bTe.avg)out={...out,use:true,m:best.m,t1:best.t1,t2:best.t2,after:this.sim(D,list,impl,P,best.m,best.t1,best.t2,0,1e9),test:te,testBase:bTe}}
     return this.res[k]=out},
   // Hiệu chỉnh các coin đang theo dõi (chạy nền, từng coin một)
-  gen:0,
+  gen:0,ac:null,
+  stop(){this.gen++;if(this.ac){this.ac.abort();this.ac=null}},
   async run(coins){
-    const gen=++this.gen;if(this.busy){while(this.busy)await sleep(40);if(gen!==this.gen)return} // lượt mới thay lượt cũ
+    this.stop();const gen=this.gen,ac=this.ac=new AbortController(),live=()=>gen===this.gen&&!ac.signal.aborted;
+    if(this.busy){while(this.busy)await sleep(40);if(!live())return} // lượt mới thay lượt cũ
     this.busy=true;
-    try{for(const s of coins){if(gen!==this.gen)break;const v=Strat.forCoin(s),tf=Strat.tfOf(v);if(!Strat.fits(v,s,tf)||Strat.impl[v.base].noCalib)continue;try{await this.fit(s,v,tf)}catch(e){}}}
-    finally{this.busy=false}},
+    try{for(const s of coins){if(!live())break;const v=Strat.forCoin(s),tf=Strat.tfOf(v);if(!Strat.fits(v,s,tf)||Strat.impl[v.base].noCalib)continue;try{await this.fit(s,v,tf,ac.signal,live)}catch(e){}}}
+    finally{this.busy=false;if(this.ac===ac)this.ac=null}},
   // Mô tả ngắn cho thẻ tín hiệu
   note(c){
     if(!c)return'Đang tối ưu SL/TP theo thống kê coin này…';

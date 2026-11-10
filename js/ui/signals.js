@@ -27,9 +27,9 @@ const Sig={
   state:{},seen:{},seeded:{},amts:{},busy:false,
   focus:Store.get('focus',['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT']),
   // Bộ nến khung nhỏ đã gắn xu hướng 1D/4h (khung lớn chỉ tải lại tối đa 1 phút/lần). BTC kèm dữ liệu ETH để xét SMT.
-  async series(s,tf,n=600){
-    const need=HTF.need(tf,n),jobs=[Data.load(s,tf,n),Data.load(s,'4h',need.h4,6e4),Data.load(s,'1d',need.d1,3e5)];
-    if(s==='BTCUSDT')jobs.push(Data.load('ETHUSDT',tf,Math.min(n,3000),tf==='15m'?0:6e4).catch(()=>null));
+  async series(s,tf,n=600,signal){
+    const need=HTF.need(tf,n),jobs=[Data.load(s,tf,n,0,signal),Data.load(s,'4h',need.h4,6e4,signal),Data.load(s,'1d',need.d1,3e5,signal)];
+    if(s==='BTCUSDT')jobs.push(Data.load('ETHUSDT',tf,Math.min(n,3000),tf==='15m'?0:6e4,signal).catch(e=>{if(isAbort(e))throw e;return null}));
     const [D,D4,D1,E]=await Promise.all(jobs);if(E)D.eth=E;
     return HTF.attach(D,D4,D1,tf)},
   // Tín hiệu MỚI gần nhất trong 30 nến và trạng thái hiện tại của lệnh chờ tương ứng
@@ -92,7 +92,7 @@ const Sig={
         Notify.push('signal',`Tín hiệu <b>${nm}</b> bị bỏ: ${L.why}`,`❌ BỎ LỆNH CHỜ ${nm} (${tf})\nLý do: ${L.why}. Hủy lệnh limit ${Fmt.px(L.e)} trên sàn nếu bạn đã đặt.`,'dn')}},
   kpi(p){
     const S=Book.stats(Book.data.orders),bal=UI.bal()||1;
-    tween($('k-risk'),p.tot,v=>'$'+v.toFixed(2));$('k-risk2').textContent=`1R = ${UI.risk()}% vốn khi chạm cắt lỗ (phí sàn ≈ $${(p.fee||0).toFixed(2)} tính riêng)`;
+    tween($('k-risk'),p.tot,v=>'$'+v.toFixed(2));$('k-risk2').textContent=`Mất tối đa ${UI.risk()}% vốn khi chạm cắt lỗ, đã gồm phí sàn ≈ $${(p.fee||0).toFixed(2)}`;
     tween($('k-per'),p.A,v=>'$'+v.toFixed(2));$('k-per2').textContent=p.none?'Hết ký quỹ trống: đợi lệnh đóng hoặc hủy lệnh chờ':`≈ ${(p.A/bal*100).toFixed(1)}% vốn, vị thế ≈ $${p.notional.toFixed(0)}${p.capped?' (giảm vì thiếu ký quỹ trống)':''}`;
     tween($('k-lev'),p.lev,v=>Math.round(v)+'×');$('k-lev').className=p.lev>=50?'dn':p.lev>20?'warn':'';
     $('k-lev2').textContent=Strat.isAuto()||!Strat.P().fixLev?`Tính từ cắt lỗ ≈ ${(p.ref*100).toFixed(2)}%: mức thấp nhất vừa ngân sách, thanh lý ≥ 2 lần cắt lỗ`:`Cố định theo chiến lược, thanh lý cách ≈ ${(p.liqDist*100).toFixed(2)}%`;
@@ -213,7 +213,9 @@ const Sig={
       `🤖 TỰ ĐỘNG ĐẶT LỆNH ${Fmt.coin(s)} ${sig.side} (${x.tf}, ${Strat.label(v)})\n${d>0?'Buy':'Sell'} Limit ${Fmt.px(lv.e)}. Cắt lỗ ${Fmt.px(lv.sl)} (−1R), TP1 ${Fmt.px(lv.tp1)} (+${t1R}R), TP2 ${Fmt.px(lv.tp2)} (+${t2R}R).\nKý quỹ $${z.margin.toFixed(2)} × ${z.lev} = vị thế $${z.notional.toFixed(0)}, thua tối đa $${z.loss.toFixed(2)}.\nHãy đặt lệnh này trên sàn.`,'up');
     else toast(`Đã ghi nhận lệnh <b>${Fmt.coin(s)} ${sig.side}</b>: ký quỹ $${z.margin.toFixed(2)} × ${z.lev}. Bảng sẽ theo dõi tới khi đóng lệnh.`,'up');
     if(!auto)this.render()},
-  render(){
+  // Gom nhiều lần gọi vẽ trong cùng một khung hình thành một lần (refresh, quét, Sổ lệnh… đều gọi render)
+  render(){if(this.rq)return;this.rq=1;const f=()=>{this.rq=0;this.draw()};if(typeof requestAnimationFrame==='function')requestAnimationFrame(f);else setTimeout(f,16)},
+  draw(){
     const p=this.plan(),xs=this.watch().filter(s=>this.state[s]&&this.state[s].ok),
       isAct=s=>{const t=this.state[s].tr;return t&&Book.isOpen(t.L)},
       rank=s=>{const L=this.state[s].tr.L;return this.canPlace(s)?(L.st==='P'?0:1):Book.openFor(s)?2:3},act=xs.filter(isAct).sort((a,b)=>rank(a)-rank(b)),
@@ -227,10 +229,34 @@ const Sig={
     $('none').hidden=act.length>0;$('na').textContent=act.length;$('nw').textContent=rest.length;
     $('skel').hidden=xs.length>0||Object.keys(this.state).length>0;
     BookPage.render();Scan.renderRank();Scan.paintBar();Tape.render()},
-  async reload(){ // đổi chiến lược hoặc khung nến: áp dụng ngay, quét lại và chọn lại coin
-    UI.lockTf();UI.save();this.state={};this.seeded={};
-    const o=Strat.isAuto()?null:Strat.I().only;if(o){this.focus=o.slice();Store.set('focus',this.focus)}
-    this.render();await this.refresh();await Scan.run();await this.refresh();await Calib.run(this.focus);await this.refresh()},
+  // Đổi chiến lược hoặc khung nến:
+  //   1) hủy NGAY việc của thiết lập cũ (yêu cầu tải nến đang chạy, backtest dở dang, tối ưu SL/TP)
+  //   2) hiện trạng thái "Đang áp dụng" + khóa tạm hàng điều khiển, gom các lần đổi liên tiếp (chờ 350ms)
+  //   3) làm mới thẻ coin → mở khóa → quét lại 30 coin chạy nền (thanh tiến trình) → tối ưu SL/TP
+  //   Mỗi lần đổi có số thứ tự; chuỗi việc của lần đổi cũ tự dừng ở bước kế tiếp, không ghi đè kết quả của lần mới.
+  rgen:0,
+  reload(){
+    UI.lockTf();UI.save();const g=++this.rgen,live=()=>g===this.rgen;
+    Scan.stop();Calib.stop();this.applying(true);clearTimeout(this.rt);
+    if(this.rdone){this.rdone();this.rdone=null} // lần đổi trước bị gộp vào lần này: kết thúc lời hứa của nó (không treo)
+    return new Promise(res=>{this.rdone=res;this.rt=setTimeout(async()=>{if(this.rdone===res)this.rdone=null;
+      try{
+        if(!live())return;
+        this.state={};this.seeded={};
+        const o=Strat.isAuto()?null:Strat.I().only;if(o){this.focus=o.slice();Store.set('focus',this.focus)}
+        this.render();
+        try{await this.refresh()}finally{if(live())this.applying(false)}
+        if(!live())return;await Scan.run();if(!live())return;await this.refresh();
+        if(!live())return;await Calib.run(this.focus);if(!live())return;await this.refresh()
+      }catch(e){if(!isAbort(e))console.warn('reload',e)}finally{res()}},this.DEB)})},
+  DEB:350,
+  // Trạng thái đang áp dụng thiết lập: mờ thẻ coin, thanh tiến trình chạy, khóa hàng điều khiển (inert = không bấm / gõ được)
+  applying(on){
+    this.busyUI=on;const st=document.querySelector&&document.querySelector('#p-main .strip');
+    if(st){st.classList.toggle('busy',on);try{st.inert=on}catch(e){}st.setAttribute&&st.setAttribute('aria-busy',on?'true':'false')}
+    const m=$('p-main');if(m&&m.classList)m.classList.toggle('applying',on);
+    const sb=$('sb');if(sb&&sb.classList)sb.classList.toggle('run',on||Scan.busy);
+    if(on){const t=$('stext');if(t)t.textContent='Đang áp dụng thiết lập mới…'}else Scan.paintBar()},
   init(){
     const m=$('p-main');
     m.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.amt;if(!k)return;
@@ -241,8 +267,10 @@ const Sig={
       const c=e.target.closest&&e.target.closest('[data-sigchart]');if(c){ChartView.signal(c.dataset.sigchart);return}
       const wc=e.target.closest&&e.target.closest('[data-watchchart]');if(wc){ChartView.watch(wc.dataset.watchchart);return}
       const w=e.target.closest&&e.target.closest('[data-why]');if(w)this.explain(w.dataset.why)});
-    for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();this.amts={};this.render()});
-    $('topk').addEventListener('input',()=>{UI.save();Scan.pick();Scan.renderRank();this.refresh()});
+    // gõ số vốn / rủi ro: lưu ngay nhưng chỉ vẽ lại khi ngừng gõ 250ms; đổi số coin: chọn lại coin sau 350ms
+    const reAmt=debounce(()=>{this.amts={};this.render()},250),reTop=debounce(()=>{Scan.pick();Scan.renderRank();this.refresh()},350);
+    for(const id of['bal','risk','slots'])$(id).addEventListener('input',()=>{UI.save();reAmt()});
+    $('topk').addEventListener('input',()=>{UI.save();reTop()});
     $('tf').addEventListener('input',()=>{Store.set('tfOwn',$('tf').value);this.reload()});
     $('strat').addEventListener('input',()=>{Strat.active=$('strat').value;Strat.save();this.reload()}); // đổi chiến lược giữ nguyên ô Rủi ro (mặc định 5% cho mọi chiến lược)
     $('autoon').checked=Store.get('auto',false);

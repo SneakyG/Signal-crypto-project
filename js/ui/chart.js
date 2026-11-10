@@ -17,18 +17,19 @@ const ChartView={
   async open(o){
     const lv=this.levels(o),id='c'+Date.now();
     Modal.open(`${o.noLv?'👀':o.side==='LONG'?'🟢':'🔴'} ${o.noLv?'':o.side+' '}${Fmt.coin(o.s)} · ${o.tf} · ${esc(o.title||ST[o.st]||'')}`,
-      `<div class="tfr"><div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on home':''}" data-tf="${t}" title="${t===o.tf?'Khung chiến lược dùng để ra lệnh':''}">${t==='1d'?'1D':t}${t===o.tf?'<em> · khung lệnh</em><i class="kl2"> ★</i>':''}</button>`).join('')}</div>${o.ana?`<label class="sw anw"><input type="checkbox" id="${id}a"${Store.get('anaOn',true)?' checked':''}><span></span>Vẽ<em> phân tích</em></label>`:''}</div>
-      <div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div>
+      `<div class="chtop"><div class="tfr"><div class="tfb" id="${id}b">${['5m','15m','1h','4h','1d'].map(t=>`<button class="${t===o.tf?'on home':''}" data-tf="${t}" title="${t===o.tf?'Khung chiến lược dùng để ra lệnh':''}">${t==='1d'?'1D':t}${t===o.tf?'<em> · khung lệnh</em><i class="kl2"> ★</i>':''}</button>`).join('')}</div>${o.ana?`<label class="sw anw"><input type="checkbox" id="${id}a"${Store.get('anaOn',true)?' checked':''}><span></span>Vẽ<em> phân tích</em></label><label class="sw anw msw" title="Vẽ các mức giá / vùng / giờ cần đạt để điều kiện ✗ thành ✓"><input type="checkbox" id="${id}m"${Store.get('missOn',true)?' checked':''}><span></span>ĐK<em> còn</em> thiếu</label>`:''}</div>
+      <div class="chw" id="${id}"><div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div></div></div><div class="chlist">
       ${o.noLv?`<p class="note" style="margin-top:10px">Coin đang theo dõi, <b>chưa có tín hiệu</b> nên chưa có giá vào, cắt lỗ, chốt lời. Bảng dưới cho biết điều kiện nào đã đạt, điều kiện nào còn thiếu tại nến vừa đóng.</p>`:''}
       <div class="chlg">${lv.map(x=>`<span class="lg ${x.k}"><i></i>${x.n}<b>${Fmt.px(x.p)}</b>${x.d!=null?`<small>${x.d>=0?'+':''}${x.d.toFixed(2)}%</small>`:''}</span>`).join('')}</div>
       ${o.ana?`<div class="anck" id="${id}k"></div>`:''}
-      <div class="row2" style="margin-top:12px"><a class="btnl" href="${TV(o.s,o.tf)}" target="_blank" rel="noopener">Mở ${Fmt.coin(o.s)} trên TradingView ↗</a>${o.noLv?'':'<button class="ghost bx" data-copy>Sao chép các mức giá</button>'}<span class="mut">Trên TradingView: chọn công cụ Long/Short Position rồi dán các mức này.</span></div>`);
-    const box=$(id),cp=box.parentElement.querySelector('[data-copy]');
+      <div class="row2" style="margin-top:12px"><a class="btnl" href="${TV(o.s,o.tf)}" target="_blank" rel="noopener">Mở ${Fmt.coin(o.s)} trên TradingView ↗</a>${o.noLv?'':'<button class="ghost bx" data-copy>Sao chép các mức giá</button>'}<span class="mut">Trên TradingView: chọn công cụ Long/Short Position rồi dán các mức này.</span></div></div>`);
+    const box=$(id),mb=box.closest('.mbox'),cp=mb.querySelector('[data-copy]');
+    this.layout(mb,box);
     if(cp)cp.onclick=async()=>{const txt=`${Fmt.coin(o.s)}USDT.P ${o.tf} ${o.side}\n`+lv.map(x=>`${x.n}: ${Fmt.px(x.p)}`).join('\n');try{await navigator.clipboard.writeText(txt);toast('Đã sao chép các mức giá.','up')}catch(e){toast('Trình duyệt chặn sao chép.','dn')}};
     // Vẽ theo khung đã chọn (mặc định khung của lệnh). Khung khác chỉ tải nến để xem, không ảnh hưởng việc theo dõi lệnh.
     const draw=async tf=>{
       box.innerHTML='<div class="chl"><span class="spin"></span> Đang tải biểu đồ…</div>';
-      let D;try{D=tf===o.tf?(o.ana?await Sig.series(o.s,o.tf,600):(Data.cache[o.s+'|'+o.tf]||await Sig.series(o.s,o.tf,600))):await Data.load(o.s,tf,500,6e4)}catch(e){box.innerHTML=`<div class="empty">Không tải được nến khung ${tf}: ${esc(e.message)}</div>`;return}
+      let D;try{D=tf===o.tf&&o.D?o.D:tf===o.tf?(o.ana?await Sig.series(o.s,o.tf,600):(Data.cache[o.s+'|'+o.tf]||await Sig.series(o.s,o.tf,600))):await Data.load(o.s,tf,500,6e4)}catch(e){box.innerHTML=`<div class="empty">Không tải được nến khung ${tf}: ${esc(e.message)}</div>`;return}
       // Phân tích chỉ tính trên khung lệnh (khung chiến lược dùng để ra tín hiệu)
       let spec=null;if(o.ana&&tf===o.tf){try{const i=Draw.idx(D,o.ana.t);spec=Draw.spec(D,o.ana.base,o.ana.P,i);if(spec)spec.t=D.t[i]}catch(e){spec=null}}
       if(o.ana)this.checklist($(id+'k'),spec,o,tf);
@@ -36,8 +37,15 @@ const ChartView={
       this.close();
       if(ok)this.lwc(box,D,o,lv,tf,spec);else this.svg(box,D,o,lv,tf)};
     if(o.ana){const sw=$(id+'a');sw.onchange=()=>{Store.set('anaOn',sw.checked);this.showAna(sw.checked)};
+      const sm=$(id+'m');sm.onchange=()=>{Store.set('missOn',sm.checked);this.showMiss(sm.checked)};
       const K=$(id+'k');K.addEventListener('mouseover',e=>{const r=e.target.closest('[data-ck]');this.hiAna(r?r.dataset.ck:null)});K.addEventListener('mouseleave',()=>this.hiAna(null));
-      K.addEventListener('click',e=>{const r=e.target.closest('[data-ck]');if(r){this.hiAna(r.dataset.ck);box.scrollIntoView({behavior:'smooth',block:'nearest'})}})}
+      K.addEventListener('click',e=>{const a=e.target.closest('[data-act]');
+        if(a){e.stopPropagation();if(a.dataset.act==='cmp'){const on=!K.classList.contains('cmp');K.classList.toggle('cmp',on);Store.set('anCmp',on);a.textContent=on?'Chi tiết':'Gọn'}
+          else mb.scrollTo({top:0,behavior:'smooth'});return}
+        const r=e.target.closest('[data-ck]');if(!r)return;this.hiAna(r.dataset.ck);
+        const b=box.getBoundingClientRect(),mh=mb.querySelector('.mhead').getBoundingClientRect().bottom;
+        if(b.bottom<mh+80||b.top>innerHeight-80)box.scrollIntoView({behavior:'smooth',block:'start'})});
+      if(Store.get('anCmp',false))K.classList.add('cmp')}
     $(id+'b').onclick=e=>{const b=e.target.closest('[data-tf]');if(!b)return;$(id+'b').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));draw(b.dataset.tf)};
     await draw(o.tf)},
   levels(o){
@@ -54,11 +62,28 @@ const ChartView={
     if(tf!==o.tf){el.innerHTML=`<p class="note">Phân tích được vẽ trên <b>khung ${o.tf}</b> (khung chiến lược dùng để ra tín hiệu). Bấm nút ${o.tf} để xem.</p>`;return}
     if(!spec){el.innerHTML='<p class="note">Không đủ dữ liệu để vẽ phân tích cho tín hiệu này (tín hiệu quá cũ so với số nến đang tải).</p>';return}
     const ok=spec.checks.filter(c=>c[1]).length,col=q=>{const it=spec.items.find(x=>x.ck===q)||(spec.pane&&spec.pane.ck===q?spec.pane:null);return q===0?'linear-gradient(90deg,var(--up),var(--dn))':it?it.c:''};
-    el.innerHTML=`<div class="anh"><b>Điều kiện tại ${o.noLv?'nến vừa đóng':'nến tín hiệu'} ${Fmt.hm(spec.t+Data.MS[o.tf])}</b><span class="chip ${ok===spec.checks.length?'up':''}">${ok}/${spec.checks.length} đạt</span></div>
+    const cmp=el.classList.contains('cmp');
+    el.innerHTML=`<div class="anh"><div class="ant"><b>${Fmt.coin(o.s)} · ${o.tf}${o.noLv?'':' · '+o.side}</b><small>Điều kiện tại ${o.noLv?'nến vừa đóng':'nến tín hiệu'} ${Fmt.hm(spec.t+Data.MS[o.tf])}</small></div>
+      <span class="andots">${spec.checks.map((c,q)=>`<i class="${c[1]?'ok':'no'}" data-ck="${q}" title="${esc(c[0])}"></i>`).join('')}</span>
+      <span class="chip ${ok===spec.checks.length?'up':''}">${ok}/${spec.checks.length} đạt</span>
+      <button class="bx ghost ansm" data-act="cmp" title="Ẩn/hiện phần giải thích của từng điều kiện">${cmp?'Chi tiết':'Gọn'}</button><button class="bx ghost ansm totop" data-act="top" title="Cuộn lên biểu đồ">↑ Biểu đồ</button></div>
       <div class="anl">${spec.checks.map((c,q)=>`<div class="ar ${c[1]?'ok':'no'}" data-ck="${q}"><i>${c[1]?'✓':'✗'}</i><div><b>${esc(c[0])}</b>${spec.req.includes(q)?'<span class="tag rq">bắt buộc</span>':''}${spec.notes[q]?`<small>${esc(spec.notes[q])}</small>`:''}</div>${col(q)?`<span class="swc" style="background:${col(q)}"></span>`:''}</div>`).join('')}</div>
       ${spec.gate?`<p class="wn">${esc(spec.gate)}</p>`:''}<p class="mut" style="font-size:12px;margin-top:8px">Rê chuột hoặc chạm vào một điều kiện để làm nổi hình vẽ tương ứng. ${o.noLv?'Khi đủ các điều kiện bắt buộc, coin sẽ có tín hiệu và hiện ở mục Đang có tín hiệu.':'Phần sau nến tín hiệu chỉ để xem giá đã đi thế nào.'}</p>`},
-  showAna(on){const A=this.cur&&this.cur.ana;if(!A)return;for(const s of A.series)try{s.applyOptions({visible:on})}catch(e){}A.box.querySelectorAll('.abox').forEach(e=>e.style.visibility=on?'':'hidden');try{A.main.setMarkers(on?A.mkAll:A.mkBase)}catch(e){}},
-  hiAna(q){const A=this.cur&&this.cur.ana;if(!A)return;A.box.querySelectorAll('.abox').forEach(e=>e.classList.toggle('hi',q!=null&&e.dataset.ck===String(q)));A.box.classList.toggle('anfocus',q!=null&&!!A.box.querySelector(`.abox[data-ck="${q}"]`))},
+  // Bố cục popup biểu đồ: máy tính = biểu đồ cố định + danh sách cuộn riêng (hoặc chia 2 cột trên màn rộng);
+  // điện thoại = cuộn cả popup, thanh tóm tắt (coin · khung · X/7 đạt) ghim ngay dưới tiêu đề khi biểu đồ trôi khỏi màn hình
+  layout(mb,box){
+    if(this.lay)try{this.lay.disconnect()}catch(e){} // popup trước (nếu có) đã bị thay
+    mb.classList.add('chpop');const head=mb.querySelector('.mhead'),list=mb.querySelector('.chlist');
+    const mh=()=>mb.style.setProperty('--mh',(head?head.offsetHeight:0)+'px');mh();
+    const stuck=()=>{const a=mb.querySelector('.anh'),k=a&&a.parentElement;if(!a)return;const ta=a.getBoundingClientRect().top,tk=k.getBoundingClientRect().top;
+      a.classList.toggle('stuck',ta>tk+2);const b=box.getBoundingClientRect();mb.classList.toggle('chgone',b.bottom<(head?head.getBoundingClientRect().bottom:0)+40)};
+    mb.addEventListener('scroll',stuck,{passive:true});if(list)list.addEventListener('scroll',stuck,{passive:true});
+    const ro=new ResizeObserver(()=>{mh();stuck()});ro.observe(mb);this.lay=ro},
+  showAna(on){const A=this.cur&&this.cur.ana;if(!A)return;for(const s of A.series)try{s.applyOptions({visible:on})}catch(e){}A.box.querySelectorAll('.abox:not(.miss)').forEach(e=>e.style.visibility=on?'':'hidden');try{A.main.setMarkers(on?A.mkAll:A.mkBase)}catch(e){}},
+  // Lớp điều kiện còn thiếu: ẩn/hiện độc lập với lớp phân tích
+  showMiss(on){const A=this.cur&&this.cur.ana;if(!A)return;for(const s of A.missSeries)try{s.applyOptions({visible:on})}catch(e){}
+    A.box.querySelectorAll('.abox.miss,.mbadge').forEach(e=>e.classList.toggle('off',!on))},
+  hiAna(q){const A=this.cur&&this.cur.ana;if(!A)return;A.box.querySelectorAll('.mbadge [data-ck]').forEach(e=>e.classList.toggle('hi',q!=null&&e.dataset.ck===String(q)));A.box.querySelectorAll('.abox').forEach(e=>e.classList.toggle('hi',q!=null&&e.dataset.ck===String(q)));A.box.classList.toggle('anfocus',q!=null&&!!A.box.querySelector(`.abox[data-ck="${q}"]`))},
   lwc(box,D,o,lv,tf,spec){
     const L=window.LightweightCharts,up=this.css('--up'),dn=this.css('--dn'),tx=this.css('--mut'),ln=this.css('--line'),acc=this.css('--acc');
     box.innerHTML='<div class="lwc"></div><div class="zone pz"></div><div class="zone lz"></div><button class="chfit" title="Về nến mới nhất">⤢</button>';
@@ -77,7 +102,8 @@ const ChartView={
     mk.sort((a,b)=>a.time-b.time);try{s.setMarkers(mk)}catch(e){}
     const ana=spec?this.drawAna(chart,s,box,D,spec,mk,bars):null;
     // Số nến hiển thị theo bề rộng (điện thoại ≈ 50 nến, máy tính ≈ 140 nến), chừa 3 nến trống bên phải
-    const fit=()=>{const w=el.clientWidth;if(!w)return;const n=Math.max(36,Math.min(140,Math.round(w/7.5)));chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-n),to:bars.length+3})};
+    const fut=ana&&ana.futR?ana.futR:3; // chừa chỗ bên phải cho killzone sắp tới (lớp ĐK còn thiếu)
+    const fit=()=>{const w=el.clientWidth;if(!w)return;const n=Math.max(36,Math.min(140,Math.round(w/7.5)));chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-n),to:bars.length+Math.max(3,Math.min(fut,Math.round(n*0.35)))})};
     let lw=0;const ro=new ResizeObserver(()=>{const w=el.clientWidth;if(w&&Math.abs(w-lw)>40){lw=w;fit()}});ro.observe(el);fit();
     box.querySelector('.chfit').onclick=fit;
     const pz=box.querySelector('.pz'),lz=box.querySelector('.lz'),be=o.beSL||o.st==='H';
@@ -85,12 +111,15 @@ const ChartView={
       const x0=chart.timeScale().timeToCoordinate(t0),W=el.clientWidth-(chart.priceScale('right').width()||60),y=p=>s.priceToCoordinate(p);
       const set=(z,a,b)=>{const ya=y(a),yb=y(b);if(ya==null||yb==null||x0==null){z.style.display='none';return}z.style.display='block';z.style.left=Math.max(0,x0)+'px';z.style.width=Math.max(0,W-Math.max(0,x0))+'px';z.style.top=Math.min(ya,yb)+'px';z.style.height=Math.abs(ya-yb)+'px'};
       if(o.noLv){pz.style.display=lz.style.display='none'}else{set(pz,o.entry,o.tp2);if(be)lz.style.display='none';else set(lz,o.entry,o.sl)}
-      if(ana)for(const b of ana.boxes){const xa=chart.timeScale().timeToCoordinate(b.ta),xb=b.end?W:chart.timeScale().timeToCoordinate(b.tb),ya=y(b.hi),yb=y(b.lo);
+      if(ana)for(const b of ana.boxes){if(b.la!=null){const ts=chart.timeScale(),xa=ts.logicalToCoordinate(b.la),xb=ts.logicalToCoordinate(b.lb);
+          if(xa==null){b.el.style.display='none';continue}b.el.style.display='block';const far=xa>=W-4,l=far?W-26:Math.max(0,xa),r=far?W:Math.min(W,xb==null?W:xb);
+          b.el.classList.toggle('far',far);b.el.style.left=l+'px';b.el.style.width=Math.max(6,r-l)+'px';b.el.style.top='0px';b.el.style.height=(el.clientHeight-28)+'px';continue}
+        const xa=chart.timeScale().timeToCoordinate(b.ta),xb=b.end?W:chart.timeScale().timeToCoordinate(b.tb),ya=y(b.hi),yb=y(b.lo);
         if(xa==null||ya==null||yb==null){b.el.style.display='none';continue}b.el.style.display='block';const l=Math.max(0,xa),r=Math.min(W,xb==null?W:xb+3);
         b.el.style.left=l+'px';b.el.style.width=Math.max(2,r-l)+'px';b.el.style.top=Math.max(0,Math.min(ya,yb))+'px';b.el.style.height=Math.max(2,Math.abs(yb-ya))+'px'}};
     chart.timeScale().subscribeVisibleLogicalRangeChange(place);
     const tick=()=>{if(!box.isConnected){this.close();return}const p=Data.px[o.s],b=bars[bars.length-1];if(p!=null&&p!==b.close){b.close=p;b.high=Math.max(b.high,p);b.low=Math.min(b.low,p);s.update({...b})}place();this.cur.raf=requestAnimationFrame(tick)};
-    this.cur={chart,raf:requestAnimationFrame(tick),ana,ro};if(ana&&!Store.get('anaOn',true))this.showAna(false);setTimeout(place,60)},
+    this.cur={chart,raf:requestAnimationFrame(tick),ana,ro};if(ana&&!Store.get('anaOn',true))this.showAna(false);if(ana&&!Store.get('missOn',true))this.showMiss(false);setTimeout(place,60)},
   // Vẽ các hình phân tích lên biểu đồ Lightweight Charts
   drawAna(chart,main,box,D,spec,mkBase,bars){
     const tz=this.tz(),k0=D.t.length-bars.length,last=D.t.length-1,T=j=>D.t[Math.min(last,Math.max(k0,j))]/1000+tz,series=[],boxes=[],hex=(c,a)=>{const n=parseInt(c.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
@@ -112,7 +141,22 @@ const ChartView={
         el.style.background=hex(it.c,it.op||.12);el.style.borderColor=hex(it.c,it.bg?0:.75);el.innerHTML=it.bg?'':`<span style="color:${it.c}">${esc(it.n)}</span>`;box.appendChild(el);
         boxes.push({el,ta:T(it.a),tb:T(it.b),end:it.b>=last,lo:it.lo,hi:it.hi})}}
     const all=[...mkBase,...mk].sort((a,b)=>a.time-b.time);try{main.setMarkers(all)}catch(e){}
-    return{series,boxes,main,mkAll:all,mkBase,box}},
+    // ---- Điều kiện còn thiếu: nét đứt, mờ, tông cam/đỏ để phân biệt với những gì đã xảy ra ----
+    const W1='#fb923c',W2='#f87171',missSeries=[],ms=D.t[1]-D.t[0];let futR=3;
+    for(const m of spec.miss||[]){
+      if(m.k==='lv'){if(!isFinite(m.p))continue;const c=m.ck===0||m.n.startsWith('Đóng')?W2:W1;
+        const l=chart.addLineSeries({...opt,color:hex(c,.5),lineWidth:1,lineStyle:2,autoscaleInfoProvider:()=>null});
+        l.setData([{time:T(m.a),value:m.p},{time:T(last),value:m.p}]);
+        l.createPriceLine({price:m.p,color:hex(c,.45),lineWidth:1,lineStyle:2,axisLabelVisible:true,title:m.n});missSeries.push(l)}
+      else if(m.k==='box'){if(!isFinite(m.lo)||!isFinite(m.hi))continue;const el=document.createElement('div');el.className='abox miss';el.dataset.ck=m.ck;
+        el.innerHTML=`<span>${esc(m.n)}</span>`;box.appendChild(el);boxes.push({el,ta:T(m.a),tb:T(last),end:true,lo:m.lo,hi:m.hi})}
+      else if(m.k==='kz'){const la=bars.length-1+(m.ta-D.t[last])/ms,lb=bars.length-1+(m.tb-D.t[last])/ms;if(lb<=bars.length-1)continue;
+        const el=document.createElement('div');el.className='abox miss kz';el.dataset.ck=m.ck;el.title=m.n+' '+Fmt.hm(m.ta)+'–'+Fmt.hm(m.tb);
+        el.innerHTML=`<span>${esc(m.n)}<br><b>${Fmt.hm(m.ta)}–${Fmt.hm(m.tb)}</b></span>`;box.appendChild(el);boxes.push({el,la,lb});
+        if(la-bars.length<40)futR=Math.max(futR,Math.ceil(lb-bars.length+2))}}
+    if(spec.need&&spec.need.length){const b=document.createElement('div');b.className='mbadge';
+      b.innerHTML=`<b>Còn thiếu ${spec.checks.filter(c=>!c[1]).length}/${spec.checks.length} điều kiện</b>${spec.need.map(n=>`<div data-ck="${n.ck}">${esc(n.t)}</div>`).join('')}`;b.title='Bấm để thu gọn / mở rộng';b.onclick=()=>{b.classList.toggle('mini');Store.set('missMini',b.classList.contains('mini'))};if(Store.get('missMini',innerWidth<640))b.classList.add('mini');box.appendChild(b)}
+    return{series,boxes,main,mkAll:all,mkBase,box,missSeries,futR:Math.min(futR,60)}},
   // Dự phòng khi không tải được thư viện: vẽ nến và vùng lệnh bằng SVG
   svg(box,D,o,lv,tf){
     const bars=this.bars(D,120),W=900,H=420,R=130,ps=[...bars.flatMap(b=>[b.high,b.low]),...lv.map(x=>x.p)],mn=Math.min(...ps),mx=Math.max(...ps),pad=(mx-mn)*0.04;
@@ -129,7 +173,7 @@ const ChartView={
         return out.join('')})()}
       ${lv.map(v=>`<line x1="0" x2="${W-R}" y1="${y(v.p)}" y2="${y(v.p)}" stroke="${col[v.k]}" stroke-dasharray="${v.k==='tp1'?'6 4':v.k==='liq'?'2 3':''}"/><text x="${W-R+4}" y="${+y(v.p)+4}" fill="${col[v.k]}" font-size="11">${v.k==='en'?'Entry':v.k.toUpperCase()} ${Fmt.px(v.p)}</text>`).join('')}</svg>
       <p class="note">Không tải được thư viện biểu đồ của TradingView (kiểm tra mạng), đang hiển thị bản vẽ đơn giản.</p>`},
-  close(){if(this.cur){cancelAnimationFrame(this.cur.raf);try{this.cur.ro&&this.cur.ro.disconnect()}catch(e){}try{this.cur.chart.remove()}catch(e){}this.cur=null}},
+  close(){if(this.cur){cancelAnimationFrame(this.cur.raf);const A=this.cur.ana;if(A){try{A.box.querySelectorAll('.abox,.mbadge').forEach(e=>e.remove())}catch(e){}A.series.length=0;A.missSeries.length=0;A.boxes.length=0}try{this.cur.ro&&this.cur.ro.disconnect()}catch(e){}try{this.cur.chart.remove()}catch(e){}this.cur=null}},
   // Mở biểu đồ cho một lệnh trong Sổ lệnh hoặc một tín hiệu trên thẻ
   order(id){const o=Book.byId(id);if(!o)return;const v=o.strat&&Strat.byId(o.strat.id),base=o.strat&&o.strat.base;
     this.open({...o,t0:o.fillT||o.ts,sig0:o.sig0||o.sigT,title:`${ST[o.st]} · ký quỹ $${o.amt.toFixed(2)} × ${o.lev||1} · bạn đặt lúc ${Fmt.hm(o.ts)}`,
@@ -137,8 +181,8 @@ const ChartView={
   // Coin đang theo dõi (chưa có tín hiệu): vẽ phân tích tại nến vừa đóng
   watch(s){const x=Sig.state[s];if(!x||!x.ok||!x.D)return;const D=x.D,i=D.c.length-2,a=x.an||{},P=x.P||x.v.params;
     this.open({s,tf:x.tf,side:a.dir||'LONG',dir:a.dirN||1,entry:D.c[D.c.length-1],noLv:true,st:'',title:`Đang theo dõi, nghiêng ${a.dir||'?'} · ${a.score!=null?a.score+'/'+a.checks.length+' điều kiện · ':''}${Strat.label(x.v)}`,
-      ana:{base:x.v.base,P,t:D.t[i]}})},
+      D,ana:{base:x.v.base,P,t:D.t[i]}})},
   signal(s){const x=Sig.state[s];if(!x||!x.tr)return;const{sig,i,L}=x.tr,z=Sig.size(s);
     this.open({s,tf:x.tf,side:sig.side,dir:sig.dirN,entry:L.e,sl:L.sl,tp1:L.tp1,tp2:L.tp2,t0:L.fill!=null?x.D.t[L.fill]:x.D.t[i],sig0:x.D.t[i],fillT:L.fill!=null?x.D.t[L.fill]+Data.MS[x.tf]:null,st:L.st,liq:z.liq,title:`${ST[L.st]} · ${Strat.label(x.v)}`,
-      ana:{base:x.v.base,P:x.P||x.v.params,t:x.D.t[i]}})}
+      D:x.D,ana:{base:x.v.base,P:x.P||x.v.params,t:x.D.t[i]}})}
 };

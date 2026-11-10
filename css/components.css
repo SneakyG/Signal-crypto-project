@@ -788,3 +788,88 @@ nav .sl{display:none;font-style:normal}
 @media(max-width:760px){.tfb{scrollbar-width:none}.tfb::-webkit-scrollbar{display:none}.tfb button{padding:6px 11px}.tfb em,.anw em{display:none}.tfb .kl2{display:inline}
   .tfr{gap:8px}.anw{font-size:12px;gap:6px}.anw span{width:36px;height:21px}.anw span::after{width:15px;height:15px}.anw input:checked+span::after{transform:translateX(15px)}
   .mhead h2{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.chw{height:48vh}}
+
+/* Lớp "điều kiện còn thiếu" trên biểu đồ: nét đứt, mờ, cam/đỏ cảnh báo */
+.abox.miss{background:rgba(251,146,60,.10);border:1px dashed rgba(251,146,60,.6);opacity:.85}
+.abox.miss span{color:#fdba74!important;font-weight:600}
+.abox.miss.kz{background:repeating-linear-gradient(135deg,rgba(248,113,113,.10) 0 6px,rgba(248,113,113,.04) 6px 12px);border-color:rgba(248,113,113,.55);border-top:0;border-bottom:0}
+.abox.miss.kz span{color:#fca5a5!important;white-space:normal;line-height:1.25}
+.abox.miss.kz.far span{writing-mode:vertical-rl;transform:rotate(180deg)}
+.abox.miss.off,.mbadge.off{display:none!important}
+.mbadge{position:absolute;left:48px;top:8px;z-index:4;max-width:min(440px,72%);padding:7px 10px;border-radius:9px;border:1px dashed rgba(251,146,60,.6);
+  background:rgba(15,23,42,.82);backdrop-filter:blur(3px);font-size:11.5px;line-height:1.45;color:#fed7aa;pointer-events:auto}
+.mbadge b{display:block;color:#fb923c;font-size:12px;margin-bottom:2px}
+.mbadge div{opacity:.9}.mbadge div.hi{opacity:1;color:#fff;background:rgba(251,146,60,.18);border-radius:4px}
+@media(max-width:640px){.mbadge{font-size:10.5px;max-width:86%;padding:5px 7px}.msw em{display:none}}
+.mbadge{cursor:pointer}.mbadge.mini div{display:none}.mbadge.mini b{margin:0}.mbadge.mini b::after{content:' ▸'}
+
+/* ===== Popup biểu đồ: biểu đồ luôn trong tầm mắt khi đọc danh sách điều kiện ===== */
+.chpop .chw{scroll-margin-top:calc(var(--mh,60px) + 8px)}
+/* Thanh tóm tắt ghim: coin · khung · chấm ✓/✗ · X/7 đạt · nút Gọn và ↑ Biểu đồ */
+.anh{position:sticky;top:var(--mh,0px);z-index:4;margin:-12px -14px 8px;padding:9px 14px;border-radius:14px 14px 0 0;background:var(--soft);
+  border-bottom:1px solid transparent;transition:box-shadow .2s,border-color .2s;flex-wrap:wrap}
+.anh.stuck{border-radius:0;border-bottom-color:var(--line);box-shadow:0 8px 18px -12px rgba(0,0,0,.55)}
+.ant{display:flex;flex-direction:column;min-width:0;flex:1}.ant b{font-size:14px}.ant small{color:var(--mut);font-size:11.5px}
+.andots{display:flex;gap:4px;align-items:center}.andots i{width:9px;height:9px;border-radius:50%;cursor:pointer;background:var(--up)}.andots i.no{background:var(--dn);opacity:.85}
+.ansm{padding:4px 9px!important;font-size:11.5px!important}
+.anh .totop{display:none}.chpop.chgone .anh.stuck .totop{display:inline-flex}
+/* Thẻ điều kiện gọn hơn */
+.anl{grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:6px}
+.ar{padding:7px 9px;gap:7px;grid-template-columns:18px 1fr 12px}
+.ar b{font-size:12.5px;line-height:1.35}.ar small{font-size:11px;line-height:1.4}
+.anck.cmp .ar small{display:none}.anck.cmp .ar{padding:6px 9px;align-items:center}
+.ar.hi,.ar:focus-visible{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+
+/* Máy tính, màn đủ cao: biểu đồ cố định ở trên (~52% popup), danh sách điều kiện cuộn riêng bên dưới */
+@media (min-width:900px) and (min-height:620px){
+  .mbox.chpop{display:flex;flex-direction:column;height:92vh;max-height:92vh;overflow:hidden}
+  .chpop .mbody{flex:1;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding-bottom:0}
+  .chpop .chtop{min-height:0;display:flex;flex-direction:column}
+  .chpop .chw{height:max(300px,50vh)}
+  .chpop .chlist{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 16px;scrollbar-gutter:stable}
+  .chpop .chlist>.note:first-child,.chpop .chlist>.chlg:first-child{margin-top:0}
+  .chpop .anh{top:0}
+  .chpop .anck{margin-top:12px}.chpop .chlist>.anck:first-child{margin-top:0}
+  .chpop .anl{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* Màn rộng: chia đôi — biểu đồ bên trái cao hết popup, danh sách điều kiện cột phải cuộn riêng */
+@media (min-width:1280px) and (min-height:620px){
+  .mbox.chpop{width:min(1480px,96vw)}
+  .chpop .mbody{grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr) 400px;gap:16px}
+  .chpop .chw{height:auto;flex:1;min-height:0}
+  .chpop .chlist{padding-bottom:20px}
+  .chpop .chlist .anl{grid-template-columns:1fr}
+  .chpop .chlist .row2{flex-wrap:wrap}
+}
+.ant{flex:1 1 140px}.ant b,.ant small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:760px){.anh{gap:6px 8px;padding:8px 12px;margin:-12px -14px 8px}.anh .ant{flex:1 1 100%}.anh.stuck .ant small{display:none}
+  .andots{flex:1}.andots i{width:8px;height:8px}}
+
+/* Đang áp dụng thiết lập mới (đổi chiến lược / khung): khóa hàng điều khiển, mờ thẻ coin, thanh tiến trình chạy */
+#p-main .strip{transition:opacity .2s,filter .2s}
+#p-main .strip.busy{opacity:.55;filter:saturate(.5);cursor:progress}
+#p-main .strip.busy label{position:relative}
+#p-main.applying #grid,#p-main.applying #wait,#p-main.applying .kpis{opacity:.45;filter:grayscale(.3);transition:opacity .2s;pointer-events:none}
+#p-main.applying .sb i{width:35%!important;animation:sbind 1s ease-in-out infinite alternate}
+@keyframes sbind{from{transform:translateX(-10%)}to{transform:translateX(200%)}}
+@media (prefers-reduced-motion:reduce){#p-main.applying .sb i{animation:none;width:100%!important}}
+/* ===== Văn phòng 3D: thanh khu vực nổi bật, nút ngày/đêm, thẻ hồ sơ trượt vào, sơ đồ ===== */
+.o3-bar .seg{padding:4px;gap:2px;background:rgba(8,14,26,.82);border-color:rgba(255,255,255,.14);box-shadow:0 8px 24px -10px rgba(0,0,0,.6)}
+.o3-bar .seg button{position:relative;display:inline-flex;align-items:center;gap:6px;transition:background .2s,color .2s}
+.o3-bar .seg button:hover{background:rgba(255,255,255,.07);color:#fff}
+.o3-zd{width:7px;height:7px;border-radius:50%;background:var(--zc,#38d6b4);box-shadow:0 0 8px var(--zc,#38d6b4);flex:none}
+.o3-bar .seg button.here:not(.on){color:#fff;background:color-mix(in srgb,var(--zc,#38d6b4) 22%,transparent)}
+.o3-bar .seg button.here::after{content:"";position:absolute;left:10px;right:10px;bottom:1px;height:2px;border-radius:2px;background:var(--zc,#38d6b4)}
+.o3-bar .seg button.on{background:var(--zc,#38d6b4);color:#06121c;box-shadow:0 0 16px -2px var(--zc,#38d6b4)}
+.o3-bar .seg button.on .o3-zd{background:#06121c;box-shadow:none}
+.o3-tod{padding:6px 12px;border-radius:99px;background:rgba(10,18,32,.72);color:#e5e7eb;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1);box-shadow:none;white-space:nowrap}
+.o3-tod:hover{border-color:rgba(240,214,138,.6)}
+.o3-card:not([hidden]){animation:o3in .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes o3in{from{opacity:0;transform:translateX(18px) scale(.97)}to{opacity:1;transform:none}}
+.o3-map{border-color:rgba(240,214,138,.35)}
+#of3d:not([hidden]),#of2d:not([hidden]){animation:offade .35s ease}
+@keyframes offade{from{opacity:0}to{opacity:1}}
+@media(max-width:760px){.o3-tod{padding:5px 9px;font-size:11px}.o3-bar .seg button{padding:6px 8px}.o3-zd{width:6px;height:6px}}
+@media (prefers-reduced-motion:reduce){.o3-card:not([hidden]),#of3d:not([hidden]),#of2d:not([hidden]){animation:none}}
+.o3-help kbd{display:inline-block;min-width:16px;padding:0 4px;margin:0 1px;border-radius:4px;border:1px solid rgba(255,255,255,.25);border-bottom-width:2px;font:600 10px/15px system-ui,sans-serif;text-align:center;color:#e5e7eb;background:rgba(255,255,255,.06)}
+@media (hover:none),(max-width:760px){.o3-hkb{display:none}} /* điện thoại / máy tính bảng không có bàn phím: ẩn gợi ý phím */
